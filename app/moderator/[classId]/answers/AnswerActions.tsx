@@ -11,42 +11,33 @@ interface Props {
 
 export default function AnswerActions({ answer, classId }: Props) {
   const [isPending, startTransition] = useTransition()
-  const [approved, setApproved] = useState(answer.status === 'approved')
   const [currentStatus, setCurrentStatus] = useState(answer.status)
   const [showReturnForm, setShowReturnForm] = useState(false)
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [returned, setReturned] = useState(false)
 
   if (currentStatus === 'approved') {
     return (
-      <span className="text-gray-400 text-sm">Одобрен ✓</span>
+      <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
+        <span className="material-symbols-outlined text-sm">check_circle</span>
+        Одобрен
+      </span>
     )
   }
 
   if (currentStatus === 'draft') {
     return (
-      <span className="text-gray-400 text-sm">Чернова</span>
+      <span className="text-xs text-gray-400">Чернова</span>
     )
   }
 
-  // submitted
   function handleApprove() {
     setError(null)
     startTransition(async () => {
       const result = await approveAnswer(answer.id, classId)
-      if (result.error) {
-        setError(result.error)
-      } else {
-        setCurrentStatus('approved')
-        setApproved(true)
-      }
+      if (result.error) setError(result.error)
+      else setCurrentStatus('approved')
     })
-  }
-
-  function handleReturnToggle() {
-    setShowReturnForm((prev) => !prev)
-    setError(null)
   }
 
   function handleSendNote() {
@@ -58,7 +49,6 @@ export default function AnswerActions({ answer, classId }: Props) {
         setError(result.error)
       } else {
         setCurrentStatus('draft')
-        setReturned(true)
         setShowReturnForm(false)
         setNote('')
       }
@@ -66,51 +56,46 @@ export default function AnswerActions({ answer, classId }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col items-end gap-2">
       <div className="flex items-center gap-2">
-        {/* Approve button */}
         <button
           onClick={handleApprove}
           disabled={isPending}
-          className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
         >
+          <span className="material-symbols-outlined text-sm">check</span>
           Одобри
         </button>
-
-        {/* Return button */}
         <button
-          onClick={handleReturnToggle}
+          onClick={() => { setShowReturnForm((p) => !p); setError(null) }}
           disabled={isPending}
-          className="bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-200"
+          className="inline-flex items-center gap-1.5 bg-white hover:bg-gray-50 text-gray-600 text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
         >
+          <span className="material-symbols-outlined text-sm">undo</span>
           Върни
         </button>
       </div>
 
-      {/* Rejection note form */}
       {showReturnForm && (
-        <div className="flex flex-col gap-1 mt-1">
+        <div className="flex flex-col gap-2 w-56">
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Бележка до родителя…"
             rows={2}
-            className="border border-gray-300 rounded px-2 py-1 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-indigo-400 w-52"
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 w-full"
           />
           <button
             onClick={handleSendNote}
             disabled={isPending || !note.trim()}
-            className="bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-200 disabled:opacity-50 self-start"
+            className="bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40 self-end"
           >
             Изпрати бележка
           </button>
         </div>
       )}
 
-      {/* Inline error */}
-      {error && (
-        <p className="text-red-600 text-xs mt-1">{error}</p>
-      )}
+      {error && <p className="text-red-500 text-xs">{error}</p>}
     </div>
   )
 }
