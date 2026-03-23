@@ -7,6 +7,8 @@ interface Props {
   students: Array<{ id: string; first_name: string; last_name: string; invite_accepted_at: string | null }>
   pendingAnswers: number
   pendingMessages: number
+  hasQuestionnaire: boolean
+  events: Array<{ id: string; title: string; event_date: string | null }>
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -25,7 +27,12 @@ const STATUS_COLORS: Record<string, string> = {
   published: 'bg-indigo-100 text-indigo-700',
 }
 
-export default function Dashboard({ classData, students, pendingAnswers, pendingMessages }: Props) {
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return null
+  return new Date(dateStr).toLocaleDateString('bg-BG', { day: 'numeric', month: 'long' })
+}
+
+export default function Dashboard({ classData, students, pendingAnswers, pendingMessages, hasQuestionnaire, events }: Props) {
   const totalStudents = students.length
   const acceptedStudents = students.filter((s) => s.invite_accepted_at !== null).length
   const progressPercent = totalStudents > 0 ? Math.round((acceptedStudents / totalStudents) * 100) : 0
@@ -34,25 +41,16 @@ export default function Dashboard({ classData, students, pendingAnswers, pending
   const statusColor = STATUS_COLORS[classData.status] ?? 'bg-gray-100 text-gray-600'
 
   const baseUrl = `/moderator/${classData.id}`
-  const isPublished = classData.status === 'published'
 
   return (
     <main className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-3xl mx-auto px-4 py-6">
+        <div className="max-w-5xl mx-auto px-6 py-6">
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{classData.name}</h1>
               <p className="text-sm text-gray-500 mt-1">Учебна година: {classData.school_year}</p>
-              {isPublished && (
-                <Link
-                  href={`/lexicon/${classData.id}`}
-                  className="inline-block mt-2 text-xs text-indigo-600 hover:underline"
-                >
-                  Виж публикувания →
-                </Link>
-              )}
             </div>
             <span className={`text-xs font-medium px-3 py-1 rounded-full ${statusColor}`}>
               {statusLabel}
@@ -61,7 +59,8 @@ export default function Dashboard({ classData, students, pendingAnswers, pending
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <div className="max-w-5xl mx-auto px-6 py-8 space-y-4">
+
         {/* Progress bar */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <div className="flex justify-between items-center mb-2">
@@ -79,87 +78,148 @@ export default function Dashboard({ classData, students, pendingAnswers, pending
           <p className="text-xs text-gray-400 mt-1">{progressPercent}%</p>
         </div>
 
-        {/* 2x2 card grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Answers */}
-          <Link href={`${baseUrl}/answers`} className="group">
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Отговори за одобрение</p>
-                  {pendingAnswers > 0 && (
-                    <span className="inline-flex items-center justify-center bg-indigo-600 text-white text-xs font-bold rounded-full w-6 h-6">
-                      {pendingAnswers}
-                    </span>
-                  )}
-                  {pendingAnswers === 0 && (
-                    <span className="text-xs text-gray-400">Няма нови</span>
-                  )}
-                </div>
-                <span className="text-gray-300 group-hover:text-indigo-400 transition-colors text-xl">→</span>
+        {/* Въпросник — primary action */}
+        <Link href={`${baseUrl}/questions`} className="block">
+          <div className="bg-indigo-600 hover:bg-indigo-700 transition-colors rounded-2xl p-6 cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white font-bold text-lg">Въпросник</p>
+                <p className="text-indigo-200 text-sm mt-1">
+                  Изберете и настройте въпросите, на които децата ще отговарят
+                </p>
               </div>
+              <span className="text-indigo-300 text-2xl">→</span>
+            </div>
+          </div>
+        </Link>
+
+        {/* Покани деца — full width */}
+        {hasQuestionnaire ? (
+          <Link href={`${baseUrl}/students`} className="block">
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-base font-semibold text-gray-800">Покани деца</p>
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    {totalStudents > 0
+                      ? `${acceptedStudents} от ${totalStudents} приели поканата`
+                      : 'Все още няма добавени деца'}
+                  </p>
+                </div>
+                <span className="text-gray-300 hover:text-indigo-400 transition-colors text-2xl">→</span>
+              </div>
+            </div>
+          </Link>
+        ) : (
+          <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-6 opacity-60 cursor-not-allowed">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-base font-semibold text-gray-500">Покани деца</p>
+                <p className="text-sm text-gray-400 mt-0.5">Първо създайте въпросника</p>
+              </div>
+              <span className="text-gray-300 text-2xl">🔒</span>
+            </div>
+          </div>
+        )}
+
+        {/* Общи събития */}
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+          <Link href={`${baseUrl}/events`}>
+            <div className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer">
+              <div>
+                <p className="text-base font-semibold text-gray-800">Общи събития 📅</p>
+                <p className="text-sm text-gray-400 mt-0.5">
+                  {events.length > 0 ? `${events.length} добавени` : 'Специални моменти от годината'}
+                </p>
+              </div>
+              <span className="text-gray-300 hover:text-indigo-400 text-xl">→</span>
             </div>
           </Link>
 
-          {/* Messages */}
-          <Link href={`${baseUrl}/messages`} className="group">
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Послания за одобрение</p>
-                  {pendingMessages > 0 && (
-                    <span className="inline-flex items-center justify-center bg-indigo-600 text-white text-xs font-bold rounded-full w-6 h-6">
-                      {pendingMessages}
-                    </span>
-                  )}
-                  {pendingMessages === 0 && (
-                    <span className="text-xs text-gray-400">Няма нови</span>
+          {events.length > 0 && (
+            <div className="border-t border-gray-100 divide-y divide-gray-100">
+              {events.map((event, i) => (
+                <div key={event.id} className="flex items-center gap-3 px-6 py-3">
+                  <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-500 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm text-gray-700 flex-1">{event.title}</span>
+                  {event.event_date && (
+                    <span className="text-xs text-gray-400">{formatDate(event.event_date)}</span>
                   )}
                 </div>
-                <span className="text-gray-300 group-hover:text-indigo-400 transition-colors text-xl">→</span>
-              </div>
+              ))}
             </div>
-          </Link>
-
-          {/* Students */}
-          <Link href={`${baseUrl}/students`} className="group">
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Деца</p>
-                  <span className="text-lg font-semibold text-gray-800">{totalStudents}</span>
-                </div>
-                <span className="text-gray-300 group-hover:text-indigo-400 transition-colors text-xl">→</span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Superhero */}
-          <Link href={`${baseUrl}/superhero`} className="group">
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Супергерой</p>
-                  <p className="text-xs text-gray-400 mt-1">Генерирай образа на класната</p>
-                </div>
-                <span className="text-gray-300 group-hover:text-indigo-400 transition-colors text-xl">→</span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Finalize */}
-          <Link href={`${baseUrl}/finalize`} className="group">
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Финализирай</p>
-                  <p className="text-xs text-gray-400 mt-1">Заключи и публикувай</p>
-                </div>
-                <span className="text-gray-300 group-hover:text-indigo-400 transition-colors text-xl">→</span>
-              </div>
-            </div>
-          </Link>
+          )}
         </div>
+
+        {/* Преглед — Отговори, Послания, Супергерой */}
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <p className="text-base font-semibold text-gray-800">Преглед</p>
+          </div>
+          <div className="grid grid-cols-3 divide-x divide-gray-100">
+            <Link href={`${baseUrl}/answers`} className="group p-5 hover:bg-gray-50 transition-colors">
+              <p className="text-sm font-medium text-gray-700 mb-1">Отговори</p>
+              {pendingAnswers > 0 ? (
+                <span className="inline-flex items-center gap-1.5 text-xs text-indigo-600 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600 inline-block" />
+                  {pendingAnswers} нови
+                </span>
+              ) : (
+                <span className="text-xs text-gray-400">Няма нови</span>
+              )}
+            </Link>
+
+            <Link href={`${baseUrl}/messages`} className="group p-5 hover:bg-gray-50 transition-colors">
+              <p className="text-sm font-medium text-gray-700 mb-1">Послания</p>
+              {pendingMessages > 0 ? (
+                <span className="inline-flex items-center gap-1.5 text-xs text-indigo-600 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600 inline-block" />
+                  {pendingMessages} нови
+                </span>
+              ) : (
+                <span className="text-xs text-gray-400">Няма нови</span>
+              )}
+            </Link>
+
+            <Link href={`${baseUrl}/superhero`} className="group p-5 hover:bg-gray-50 transition-colors">
+              <p className="text-sm font-medium text-gray-700 mb-1">Супергерой 🦸</p>
+              <span className="text-xs text-gray-400">AI образ на класната</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Преглед на лексикона */}
+        <Link href={`/class/${classData.id}/home`} className="block">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-base font-semibold text-gray-800">Преглед на лексикона</p>
+                <p className="text-sm text-gray-400 mt-0.5">Виж как ще изглежда за родителите</p>
+              </div>
+              <span className="text-gray-300 hover:text-indigo-400 transition-colors text-2xl">→</span>
+            </div>
+          </div>
+        </Link>
+
+        {/* Финализирай */}
+        <Link href={`${baseUrl}/finalize`} className="block">
+          <div className="bg-emerald-600 hover:bg-emerald-700 transition-colors rounded-2xl p-6 cursor-pointer shadow-md">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white font-bold text-lg">Финализирай лексикона</p>
+                <p className="text-emerald-100 text-sm mt-1">
+                  Всичко готово? Заключи и публикувай за целия клас.
+                </p>
+              </div>
+              <div className="bg-white/20 rounded-xl p-3">
+                <span className="text-white text-2xl">✓</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+
       </div>
     </main>
   )

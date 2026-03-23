@@ -66,12 +66,27 @@ export default async function ModeratorDashboard({ params }: { params: { classId
       (students ?? []).map((s) => s.id)
     )
 
+  // 7. Check if questionnaire has been configured (any class-specific questions)
+  const { count: questionCount } = await adminClient
+    .from('questions')
+    .select('id', { count: 'exact', head: true })
+    .eq('class_id', params.classId)
+
+  // 8. Fetch events
+  const { data: events } = await adminClient
+    .from('events')
+    .select('id, title, event_date')
+    .eq('class_id', params.classId)
+    .order('order_index')
+
   return (
     <Dashboard
       classData={classData}
       students={students ?? []}
       pendingAnswers={pendingAnswers ?? 0}
       pendingMessages={pendingMessages ?? 0}
+      hasQuestionnaire={(questionCount ?? 0) > 0}
+      events={events ?? []}
     />
   )
 }

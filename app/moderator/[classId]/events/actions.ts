@@ -1,0 +1,70 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { createServiceRoleClient } from '@/lib/supabase/server'
+
+export async function createEvent(
+  classId: string,
+  data: { title: string; event_date: string | null; note: string | null; order_index: number }
+): Promise<{ error: string | null }> {
+  const supabase = createServiceRoleClient()
+
+  const { error } = await supabase.from('events').insert({
+    class_id: classId,
+    title: data.title,
+    event_date: data.event_date || null,
+    note: data.note || null,
+    order_index: data.order_index,
+  })
+
+  if (error) {
+    console.error('[createEvent]', error.message)
+    return { error: 'Грешка при създаване на събитието.' }
+  }
+
+  revalidatePath(`/moderator/${classId}/events`)
+  return { error: null }
+}
+
+export async function updateEvent(
+  classId: string,
+  eventId: string,
+  data: { title: string; event_date: string | null; note: string | null }
+): Promise<{ error: string | null }> {
+  const supabase = createServiceRoleClient()
+
+  const { error } = await supabase
+    .from('events')
+    .update({ title: data.title, event_date: data.event_date || null, note: data.note || null })
+    .eq('id', eventId)
+    .eq('class_id', classId)
+
+  if (error) {
+    console.error('[updateEvent]', error.message)
+    return { error: 'Грешка при запазване.' }
+  }
+
+  revalidatePath(`/moderator/${classId}/events`)
+  return { error: null }
+}
+
+export async function deleteEvent(
+  classId: string,
+  eventId: string
+): Promise<{ error: string | null }> {
+  const supabase = createServiceRoleClient()
+
+  const { error } = await supabase
+    .from('events')
+    .delete()
+    .eq('id', eventId)
+    .eq('class_id', classId)
+
+  if (error) {
+    console.error('[deleteEvent]', error.message)
+    return { error: 'Грешка при изтриване.' }
+  }
+
+  revalidatePath(`/moderator/${classId}/events`)
+  return { error: null }
+}
