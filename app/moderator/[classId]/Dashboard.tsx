@@ -4,51 +4,58 @@ import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { updateClassInfo } from './actions'
 
+interface Contribution {
+  id: string
+  text_content: string | null
+  media_url: string | null
+  media_type: string | null
+  updated_at: string
+  student_id: string
+  questions: { text: string } | null
+  students: { first_name: string; last_name: string; photo_url: string | null } | null
+}
+
 interface Props {
   classData: { id: string; name: string; school_year: string; status: string; school_logo_url: string | null }
   students: Array<{ id: string; first_name: string; last_name: string; invite_accepted_at: string | null }>
   pendingAnswers: number
   pendingMessages: number
+  approvedAnswers: number
   hasQuestionnaire: boolean
   events: Array<{ id: string; title: string; event_date: string | null }>
+  recentContributions: Contribution[]
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Чернова',
-  active: 'Активен',
-  ready_for_payment: 'Готов за плащане',
-  pending_payment: 'Очаква плащане',
-  published: 'Публикуван',
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `преди ${mins} мин.`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `преди ${hours} ч.`
+  const days = Math.floor(hours / 24)
+  return `преди ${days} дни`
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-600',
-  active: 'bg-green-100 text-green-700',
-  ready_for_payment: 'bg-blue-100 text-blue-700',
-  pending_payment: 'bg-yellow-100 text-yellow-700',
-  published: 'bg-indigo-100 text-indigo-700',
+function Icon({ name, className = '' }: { name: string; className?: string }) {
+  return <span className={`material-symbols-outlined ${className}`}>{name}</span>
 }
 
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return null
-  return new Date(dateStr).toLocaleDateString('bg-BG', { day: 'numeric', month: 'long' })
-}
-
-export default function Dashboard({ classData, students, pendingAnswers, pendingMessages, hasQuestionnaire, events }: Props) {
+export default function Dashboard({
+  classData, students, pendingAnswers, pendingMessages,
+  approvedAnswers, hasQuestionnaire, events, recentContributions,
+}: Props) {
   const totalStudents = students.length
   const acceptedStudents = students.filter((s) => s.invite_accepted_at !== null).length
   const progressPercent = totalStudents > 0 ? Math.round((acceptedStudents / totalStudents) * 100) : 0
+  const remaining = totalStudents - acceptedStudents
 
-  const statusLabel = STATUS_LABELS[classData.status] ?? classData.status
-  const statusColor = STATUS_COLORS[classData.status] ?? 'bg-gray-100 text-gray-600'
-  const baseUrl = `/moderator/${classData.id}`
+  const base = `/moderator/${classData.id}`
 
-  // Split stored name "3А — ОУ Христо Ботев" back into parts
   const [namePart, schoolPart] = classData.name.includes(' — ')
     ? classData.name.split(' — ')
     : [classData.name, '']
 
-  const [editing, setEditing] = useState(false)
+  const [editingSettings, setEditingSettings] = useState(false)
   const [className, setClassName] = useState(namePart)
   const [school, setSchool] = useState(schoolPart)
   const [schoolYear, setSchoolYear] = useState(classData.school_year)
@@ -62,19 +69,17 @@ export default function Dashboard({ classData, students, pendingAnswers, pending
     if (!file) return
     setLogoUploading(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await fetch('/api/media/upload', { method: 'POST', body: formData })
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/media/upload', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.url) setLogoUrl(data.url)
-    } catch {
-      setSaveError('Качването на логото не успя.')
     } finally {
       setLogoUploading(false)
     }
   }
 
-  function handleSave() {
+  function handleSaveSettings() {
     if (!className.trim() || !school.trim() || !schoolYear.trim()) {
       setSaveError('Моля попълнете всички полета.')
       return
@@ -86,276 +91,354 @@ export default function Dashboard({ classData, students, pendingAnswers, pending
         school_year: schoolYear.trim(),
         school_logo_url: logoUrl ?? undefined,
       })
-      if (result.error) {
-        setSaveError(result.error)
-      } else {
-        setEditing(false)
-      }
+      if (result.error) setSaveError(result.error)
+      else setEditingSettings(false)
     })
   }
 
+  const navItems = [
+    { icon: 'dashboard', label: 'Табло', href: base, active: true },
+    { icon: 'group', label: 'Деца', href: `${base}/students` },
+    { icon: 'volunteer_activism', label: 'Отговори', href: `${base}/answers` },
+    { icon: 'quiz', label: 'Въпросник', href: `${base}/questions` },
+    { icon: 'calendar_month', label: 'Събития', href: `${base}/events` },
+    { icon: 'settings', label: 'Настройки', href: '#', onClick: () => setEditingSettings(true) },
+  ]
+
   return (
-    <main className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-6 py-6">
-          {editing ? (
-            <div className="space-y-4">
-              {saveError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-lg">
-                  {saveError}
-                </div>
-              )}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Клас</label>
-                  <input
-                    value={className}
-                    onChange={(e) => setClassName(e.target.value)}
-                    placeholder="3А"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Училище</label>
-                  <input
-                    value={school}
-                    onChange={(e) => setSchool(e.target.value)}
-                    placeholder="ОУ Христо Ботев"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Учебна година</label>
-                  <input
-                    value={schoolYear}
-                    onChange={(e) => setSchoolYear(e.target.value)}
-                    placeholder="2024/2025"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3">
-                  {logoUrl && (
-                    <img src={logoUrl} alt="Лого" className="w-12 h-12 rounded-lg object-contain border border-gray-200 bg-white p-1" />
-                  )}
-                  <label className="cursor-pointer inline-flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors">
-                    {logoUploading ? 'Качване...' : logoUrl ? 'Смени лого' : 'Качи лого'}
-                    <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} disabled={logoUploading} />
-                  </label>
-                  {logoUrl && (
-                    <button onClick={() => setLogoUrl(null)} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
-                      Премахни
-                    </button>
-                  )}
-                </div>
-                <div className="flex gap-2 ml-auto">
-                  <button
-                    onClick={() => { setEditing(false); setSaveError(null) }}
-                    className="text-sm text-gray-500 hover:text-gray-700 px-4 py-2"
-                  >
-                    Отказ
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={isPending || logoUploading}
-                    className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-                  >
-                    {isPending ? 'Запазване...' : 'Запази'}
-                  </button>
-                </div>
-              </div>
-            </div>
+    <div className="flex min-h-screen bg-[#faf9f8]" style={{ fontFamily: 'Manrope, sans-serif' }}>
+
+      {/* ── Sidebar ─────────────────────────────────────────────────── */}
+      <aside className="w-64 fixed left-0 top-0 h-screen bg-[#f4f3f2] flex flex-col p-4 z-50">
+        {/* Brand */}
+        <div className="px-2 py-4">
+          <h1 className="text-indigo-900 text-xl font-bold tracking-tight" style={{ fontFamily: 'Noto Serif, serif' }}>
+            Един неразделен клас
+          </h1>
+          <p className="text-xs text-slate-400 uppercase tracking-widest mt-1">Admin Panel</p>
+        </div>
+
+        {/* Profile */}
+        <div className="flex items-center gap-3 px-2 py-3 bg-white/60 rounded-xl mb-4">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Лого" className="w-10 h-10 rounded-full object-contain bg-white border border-gray-100 p-0.5" />
           ) : (
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                {logoUrl && (
-                  <img src={logoUrl} alt="Лого" className="w-12 h-12 rounded-lg object-contain border border-gray-100 bg-white p-1 shadow-sm" />
-                )}
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{classData.name}</h1>
-                  <p className="text-sm text-gray-500 mt-0.5">Учебна година: {classData.school_year}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className={`text-xs font-medium px-3 py-1 rounded-full ${statusColor}`}>
-                  {statusLabel}
-                </span>
-                <button
-                  onClick={() => setEditing(true)}
-                  className="text-xs text-gray-400 hover:text-indigo-600 border border-gray-200 hover:border-indigo-300 px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  Редактирай
-                </button>
-              </div>
+            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
+              {namePart[0]}
             </div>
           )}
-        </div>
-      </div>
-
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-4">
-
-        {/* Progress bar */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700">Прогрес на класа</span>
-            <span className="text-sm text-gray-500">
-              {acceptedStudents} от {totalStudents} деца са попълнили профила си
-            </span>
+          <div className="overflow-hidden">
+            <p className="font-bold text-sm text-indigo-900 truncate">{namePart}</p>
+            <p className="text-xs text-slate-400 truncate">{classData.school_year}</p>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-3">
-            <div
-              className="bg-indigo-600 h-3 rounded-full transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-          <p className="text-xs text-gray-400 mt-1">{progressPercent}%</p>
         </div>
 
-        {/* Въпросник — primary action */}
-        <Link href={`${baseUrl}/questions`} className="block">
-          <div className="bg-indigo-600 hover:bg-indigo-700 transition-colors rounded-2xl p-6 cursor-pointer">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white font-bold text-lg">Въпросник</p>
-                <p className="text-indigo-200 text-sm mt-1">
-                  Изберете и настройте въпросите, на които децата ще отговарят
-                </p>
-              </div>
-              <span className="text-indigo-300 text-2xl">→</span>
-            </div>
-          </div>
-        </Link>
+        {/* Nav */}
+        <nav className="flex-1 space-y-0.5">
+          {navItems.map((item) =>
+            item.onClick ? (
+              <button
+                key={item.label}
+                onClick={item.onClick}
+                className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-white/50 rounded-lg transition-colors text-left"
+              >
+                <Icon name={item.icon} className="text-xl" />
+                <span className="text-sm">{item.label}</span>
+              </button>
+            ) : (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm ${
+                  item.active
+                    ? 'bg-white text-indigo-700 font-semibold shadow-sm'
+                    : 'text-slate-500 hover:bg-white/50'
+                }`}
+              >
+                <Icon name={item.icon} className="text-xl" />
+                {item.label}
+              </Link>
+            )
+          )}
+        </nav>
 
-        {/* Покани деца — full width */}
-        {hasQuestionnaire ? (
-          <Link href={`${baseUrl}/students`} className="block">
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-base font-semibold text-gray-800">Покани деца</p>
-                  <p className="text-sm text-gray-400 mt-0.5">
-                    {totalStudents > 0
-                      ? `${acceptedStudents} от ${totalStudents} приели поканата`
-                      : 'Все още няма добавени деца'}
-                  </p>
-                </div>
-                <span className="text-gray-300 hover:text-indigo-400 transition-colors text-2xl">→</span>
-              </div>
-            </div>
+        {/* Bottom */}
+        <div className="pt-4 space-y-1">
+          <Link
+            href={`${base}/finalize`}
+            className="w-full block bg-gradient-to-br from-indigo-600 to-indigo-500 text-white py-3 px-4 rounded-xl font-bold text-sm text-center shadow hover:opacity-90 transition-opacity"
+          >
+            Финализирай лексикона
           </Link>
-        ) : (
-          <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-6 opacity-60 cursor-not-allowed">
-            <div className="flex items-center justify-between">
+        </div>
+      </aside>
+
+      {/* ── Main ────────────────────────────────────────────────────── */}
+      <main className="ml-64 flex-1 p-8 lg:p-12">
+
+        {/* Header */}
+        <header className="mb-10 flex justify-between items-end">
+          <div>
+            <nav className="flex gap-2 text-xs text-slate-400 uppercase tracking-widest mb-2">
+              <span>Admin Panel</span>
+              <span>/</span>
+              <span className="text-indigo-600 font-bold">Табло</span>
+            </nav>
+            <h2 className="text-4xl font-bold text-gray-900" style={{ fontFamily: 'Noto Serif, serif' }}>
+              {classData.name}
+            </h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="bg-white px-4 py-2 rounded-lg flex items-center gap-2 border border-gray-100">
+              <Icon name="calendar_today" className="text-amber-600 text-base" />
+              <span className="text-sm font-semibold text-gray-700">{classData.school_year}</span>
+            </div>
+            <button
+              onClick={() => setEditingSettings(true)}
+              className="bg-white px-3 py-2 rounded-lg border border-gray-100 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 transition-colors text-sm flex items-center gap-1.5"
+            >
+              <Icon name="edit" className="text-base" />
+              Редактирай
+            </button>
+          </div>
+        </header>
+
+        {/* Settings inline edit */}
+        {editingSettings && (
+          <div className="bg-white rounded-2xl border border-indigo-100 p-6 mb-8 shadow-sm">
+            <h3 className="font-bold text-gray-800 mb-4">Настройки на класа</h3>
+            {saveError && <p className="text-red-600 text-sm mb-3">{saveError}</p>}
+            <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
-                <p className="text-base font-semibold text-gray-500">Покани деца</p>
-                <p className="text-sm text-gray-400 mt-0.5">Първо създайте въпросника</p>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Клас</label>
+                <input value={className} onChange={(e) => setClassName(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
               </div>
-              <span className="text-gray-300 text-2xl">🔒</span>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Училище</label>
+                <input value={school} onChange={(e) => setSchool(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Учебна година</label>
+                <input value={schoolYear} onChange={(e) => setSchoolYear(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                {logoUrl && <img src={logoUrl} alt="Лого" className="w-10 h-10 rounded-lg object-contain border border-gray-100 bg-white p-1" />}
+                <label className="cursor-pointer border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors">
+                  {logoUploading ? 'Качване...' : logoUrl ? 'Смени лого' : 'Качи лого'}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} disabled={logoUploading} />
+                </label>
+                {logoUrl && <button onClick={() => setLogoUrl(null)} className="text-xs text-gray-400 hover:text-red-500">Премахни</button>}
+              </div>
+              <div className="flex gap-2 ml-auto">
+                <button onClick={() => { setEditingSettings(false); setSaveError(null) }}
+                  className="text-sm text-gray-400 hover:text-gray-600 px-4 py-2">Отказ</button>
+                <button onClick={handleSaveSettings} disabled={isPending || logoUploading}
+                  className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                  {isPending ? 'Запазване...' : 'Запази'}
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Общи събития */}
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-          <Link href={`${baseUrl}/events`}>
-            <div className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer">
-              <div>
-                <p className="text-base font-semibold text-gray-800">Общи събития 📅</p>
-                <p className="text-sm text-gray-400 mt-0.5">
-                  {events.length > 0 ? `${events.length} добавени` : 'Специални моменти от годината'}
-                </p>
-              </div>
-              <span className="text-gray-300 hover:text-indigo-400 text-xl">→</span>
-            </div>
-          </Link>
-
-          {events.length > 0 && (
-            <div className="border-t border-gray-100 divide-y divide-gray-100">
-              {events.map((event, i) => (
-                <div key={event.id} className="flex items-center gap-3 px-6 py-3">
-                  <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-500 text-xs font-bold flex items-center justify-center flex-shrink-0">
-                    {i + 1}
+        {/* Stats row */}
+        <section className="grid grid-cols-12 gap-5 mb-10">
+          {/* Progress */}
+          <div className="col-span-12 lg:col-span-7 bg-white rounded-2xl p-8 shadow-sm relative overflow-hidden group border border-gray-100">
+            <div className="relative z-10">
+              <h3 className="text-xl font-bold text-gray-800 mb-5" style={{ fontFamily: 'Noto Serif, serif' }}>
+                Прогрес на випуска
+              </h3>
+              <div className="flex items-end justify-between mb-3">
+                <span className="text-6xl font-bold text-indigo-600">{progressPercent}%</span>
+                {remaining > 0 && (
+                  <span className="text-sm text-slate-400 uppercase tracking-tight">
+                    Остават {remaining} профила
                   </span>
-                  <span className="text-sm text-gray-700 flex-1">{event.title}</span>
-                  {event.event_date && (
-                    <span className="text-xs text-gray-400">{formatDate(event.event_date)}</span>
+                )}
+              </div>
+              <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-600 rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }} />
+              </div>
+            </div>
+            <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-indigo-100 opacity-40 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
+          </div>
+
+          {/* Quick stats */}
+          <div className="col-span-12 lg:col-span-5 grid grid-cols-2 gap-4">
+            <Link href={`${base}/answers`}
+              className="bg-gray-50 border border-gray-100 rounded-2xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+              <Icon name="pending_actions" className="text-indigo-600 text-2xl mb-3" />
+              <div>
+                <p className="text-3xl font-bold text-gray-900">{pendingAnswers}</p>
+                <p className="text-xs uppercase tracking-widest text-slate-400 mt-1">Чакащи приноси</p>
+              </div>
+            </Link>
+            <div className="bg-emerald-400 rounded-2xl p-6 flex flex-col justify-between">
+              <Icon name="verified" className="text-emerald-900 text-2xl mb-3" />
+              <div>
+                <p className="text-3xl font-bold text-emerald-900">{approvedAnswers}</p>
+                <p className="text-xs uppercase tracking-widest text-emerald-800 mt-1">Одобрени истории</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Bento grid */}
+        <div className="grid grid-cols-12 gap-8">
+          {/* Student list */}
+          <div className="col-span-12 lg:col-span-8">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'Noto Serif, serif' }}>
+                Деца в класа
+              </h3>
+              <Link href={`${base}/students`}
+                className="text-sm font-bold text-indigo-600 flex items-center gap-1 hover:underline">
+                Виж всички <Icon name="arrow_forward" className="text-sm" />
+              </Link>
+            </div>
+
+            <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+              {students.length === 0 ? (
+                <div className="p-10 text-center text-slate-400 text-sm">
+                  Все още няма добавени деца.
+                </div>
+              ) : (
+                students.slice(0, 6).map((student, i) => (
+                  <div key={student.id}
+                    className={`flex items-center justify-between p-4 hover:bg-gray-50 transition-colors ${i > 0 ? 'border-t border-gray-50' : ''}`}>
+                    <div className="flex items-center gap-4">
+                      <div className="w-11 h-11 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
+                        {student.first_name[0]}{student.last_name[0]}
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-800 text-sm">{student.first_name} {student.last_name}</p>
+                        <p className="text-xs text-slate-400">
+                          {student.invite_accepted_at ? 'Прие поканата' : 'Покана изпратена'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${
+                        student.invite_accepted_at
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {student.invite_accepted_at ? 'Активен' : 'Pending'}
+                      </span>
+                      <div className="flex gap-1">
+                        <Link href={`${base}/answers`}
+                          className="p-2 text-indigo-400 hover:bg-indigo-50 rounded-lg transition-colors">
+                          <Icon name="visibility" className="text-base" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Quick links row */}
+            <div className="grid grid-cols-3 gap-4 mt-4">
+              <Link href={`${base}/questions`}
+                className="bg-white border border-gray-100 rounded-xl p-4 hover:shadow-md transition-shadow flex items-center gap-3">
+                <Icon name="quiz" className="text-indigo-400 text-xl" />
+                <div>
+                  <p className="text-xs font-bold text-gray-700">Въпросник</p>
+                  <p className="text-xs text-slate-400">{hasQuestionnaire ? 'Конфигуриран' : 'Не е готов'}</p>
+                </div>
+              </Link>
+              <Link href={`${base}/messages`}
+                className="bg-white border border-gray-100 rounded-xl p-4 hover:shadow-md transition-shadow flex items-center gap-3">
+                <Icon name="mail" className="text-indigo-400 text-xl" />
+                <div>
+                  <p className="text-xs font-bold text-gray-700">Послания</p>
+                  <p className="text-xs text-slate-400">{pendingMessages > 0 ? `${pendingMessages} нови` : 'Няма нови'}</p>
+                </div>
+              </Link>
+              <Link href={`${base}/events`}
+                className="bg-white border border-gray-100 rounded-xl p-4 hover:shadow-md transition-shadow flex items-center gap-3">
+                <Icon name="calendar_month" className="text-indigo-400 text-xl" />
+                <div>
+                  <p className="text-xs font-bold text-gray-700">Събития</p>
+                  <p className="text-xs text-slate-400">{events.length > 0 ? `${events.length} добавени` : 'Няма'}</p>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* Recent contributions */}
+          <div className="col-span-12 lg:col-span-4 space-y-4">
+            <h3 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'Noto Serif, serif' }}>
+              Последни приноси
+            </h3>
+
+            {recentContributions.length === 0 ? (
+              <div className="bg-white border border-gray-100 rounded-2xl p-8 text-center text-slate-400 text-sm">
+                Все още няма одобрени отговори.
+              </div>
+            ) : (
+              recentContributions.map((c) => (
+                <div key={c.id}
+                  className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-bold flex-shrink-0">
+                      {c.students?.first_name?.[0]}{c.students?.last_name?.[0]}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-gray-800 truncate">
+                        {c.students?.first_name} {c.students?.last_name}
+                        <span className="text-slate-400 font-normal ml-1">
+                          {c.media_type === 'video' ? 'добави видео' : c.media_type === 'audio' ? 'добави аудио' : 'отговори'}
+                        </span>
+                      </p>
+                      <p className="text-xs text-slate-400">{timeAgo(c.updated_at)}</p>
+                    </div>
+                  </div>
+
+                  {c.media_url && c.media_type === 'video' ? (
+                    <div className="rounded-lg overflow-hidden h-32 mb-3 bg-gray-100">
+                      <video src={c.media_url} className="w-full h-full object-cover" />
+                    </div>
+                  ) : c.media_url && !c.media_type ? (
+                    <div className="rounded-lg overflow-hidden h-32 mb-3 bg-gray-100">
+                      <img src={c.media_url} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ) : null}
+
+                  {c.text_content && (
+                    <p className="text-sm italic text-indigo-900 leading-relaxed" style={{ fontFamily: 'Noto Serif, serif' }}>
+                      „{c.text_content.slice(0, 120)}{c.text_content.length > 120 ? '…' : ''}"
+                    </p>
+                  )}
+
+                  {c.questions?.text && (
+                    <p className="text-xs text-slate-400 mt-2">{c.questions.text}</p>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              ))
+            )}
 
-        {/* Преглед — Отговори, Послания, Супергерой */}
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <p className="text-base font-semibold text-gray-800">Преглед</p>
-          </div>
-          <div className="grid grid-cols-3 divide-x divide-gray-100">
-            <Link href={`${baseUrl}/answers`} className="group p-5 hover:bg-gray-50 transition-colors">
-              <p className="text-sm font-medium text-gray-700 mb-1">Отговори</p>
-              {pendingAnswers > 0 ? (
-                <span className="inline-flex items-center gap-1.5 text-xs text-indigo-600 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-indigo-600 inline-block" />
-                  {pendingAnswers} нови
-                </span>
-              ) : (
-                <span className="text-xs text-gray-400">Няма нови</span>
-              )}
-            </Link>
-
-            <Link href={`${baseUrl}/messages`} className="group p-5 hover:bg-gray-50 transition-colors">
-              <p className="text-sm font-medium text-gray-700 mb-1">Послания</p>
-              {pendingMessages > 0 ? (
-                <span className="inline-flex items-center gap-1.5 text-xs text-indigo-600 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-indigo-600 inline-block" />
-                  {pendingMessages} нови
-                </span>
-              ) : (
-                <span className="text-xs text-gray-400">Няма нови</span>
-              )}
-            </Link>
-
-            <Link href={`${baseUrl}/superhero`} className="group p-5 hover:bg-gray-50 transition-colors">
-              <p className="text-sm font-medium text-gray-700 mb-1">Супергерой 🦸</p>
-              <span className="text-xs text-gray-400">AI образ на класната</span>
+            {/* Superhero link */}
+            <Link href={`${base}/superhero`}
+              className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between group hover:bg-indigo-600 hover:border-indigo-600 transition-all duration-300 cursor-pointer">
+              <div className="flex items-center gap-3">
+                <Icon name="auto_awesome" className="text-indigo-500 group-hover:text-white text-xl" />
+                <div>
+                  <p className="text-sm font-bold text-gray-800 group-hover:text-white">Супергерой</p>
+                  <p className="text-xs text-slate-400 group-hover:text-indigo-200">AI образ на класната</p>
+                </div>
+              </div>
+              <Icon name="arrow_forward" className="text-slate-300 group-hover:text-white text-base" />
             </Link>
           </div>
         </div>
-
-        {/* Преглед на лексикона */}
-        <Link href={`/class/${classData.id}/home`} className="block">
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow cursor-pointer">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-base font-semibold text-gray-800">Преглед на лексикона</p>
-                <p className="text-sm text-gray-400 mt-0.5">Виж как ще изглежда за родителите</p>
-              </div>
-              <span className="text-gray-300 hover:text-indigo-400 transition-colors text-2xl">→</span>
-            </div>
-          </div>
-        </Link>
-
-        {/* Финализирай */}
-        <Link href={`${baseUrl}/finalize`} className="block">
-          <div className="bg-emerald-600 hover:bg-emerald-700 transition-colors rounded-2xl p-6 cursor-pointer shadow-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white font-bold text-lg">Финализирай лексикона</p>
-                <p className="text-emerald-100 text-sm mt-1">
-                  Всичко готово? Заключи и публикувай за целия клас.
-                </p>
-              </div>
-              <div className="bg-white/20 rounded-xl p-3">
-                <span className="text-white text-2xl">✓</span>
-              </div>
-            </div>
-          </div>
-        </Link>
-
-      </div>
-    </main>
+      </main>
+    </div>
   )
 }

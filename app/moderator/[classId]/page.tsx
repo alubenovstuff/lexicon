@@ -72,7 +72,27 @@ export default async function ModeratorDashboard({ params }: { params: { classId
     .select('id', { count: 'exact', head: true })
     .eq('class_id', params.classId)
 
-  // 8. Fetch events
+  const studentIds = (students ?? []).map((s) => s.id)
+
+  // 8. Fetch approved answers count
+  const { count: approvedAnswers } = await adminClient
+    .from('answers')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'approved')
+    .in('student_id', studentIds)
+
+  // 9. Fetch recent contributions (last 4 approved answers with student + question info)
+  const { data: recentContributions } = studentIds.length > 0
+    ? await adminClient
+        .from('answers')
+        .select('id, text_content, media_url, media_type, updated_at, student_id, question_id, questions(text), students(first_name, last_name, photo_url)')
+        .eq('status', 'approved')
+        .in('student_id', studentIds)
+        .order('updated_at', { ascending: false })
+        .limit(4)
+    : { data: [] }
+
+  // 10. Fetch events
   const { data: events } = await adminClient
     .from('events')
     .select('id, title, event_date')
@@ -85,8 +105,10 @@ export default async function ModeratorDashboard({ params }: { params: { classId
       students={students ?? []}
       pendingAnswers={pendingAnswers ?? 0}
       pendingMessages={pendingMessages ?? 0}
+      approvedAnswers={approvedAnswers ?? 0}
       hasQuestionnaire={(questionCount ?? 0) > 0}
       events={events ?? []}
+      recentContributions={(recentContributions ?? []) as any[]}
     />
   )
 }
