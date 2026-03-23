@@ -15,23 +15,29 @@ export default function MessageActions({ message, classId }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   if (currentStatus === 'approved') {
-    return <span className="text-gray-400 text-sm">Одобрено ✓</span>
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+        <span className="material-symbols-outlined text-sm">check_circle</span>
+        Одобрено
+      </span>
+    )
   }
 
   if (currentStatus === 'rejected') {
-    return <span className="text-gray-400 text-sm">Отхвърлено</span>
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-400">
+        <span className="material-symbols-outlined text-sm">cancel</span>
+        Отхвърлено
+      </span>
+    )
   }
 
-  // pending
   function handleApprove() {
     setError(null)
     startTransition(async () => {
       const result = await approveMessage(message.id, classId)
-      if (result.error) {
-        setError(result.error)
-      } else {
-        setCurrentStatus('approved')
-      }
+      if (result.error) setError(result.error)
+      else setCurrentStatus('approved')
     })
   }
 
@@ -39,40 +45,32 @@ export default function MessageActions({ message, classId }: Props) {
     setError(null)
     startTransition(async () => {
       const result = await rejectMessage(message.id, classId)
-      if (result.error) {
-        setError(result.error)
-      } else {
-        setCurrentStatus('rejected')
-      }
+      if (result.error) setError(result.error)
+      else setCurrentStatus('rejected')
     })
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col items-end gap-2">
       <div className="flex items-center gap-2">
-        {/* Approve button */}
         <button
           onClick={handleApprove}
           disabled={isPending}
-          className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
         >
+          <span className="material-symbols-outlined text-sm">check</span>
           Одобри
         </button>
-
-        {/* Reject button */}
         <button
           onClick={handleReject}
           disabled={isPending}
-          className="bg-red-100 text-red-700 px-3 py-1 rounded text-sm hover:bg-red-200 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 bg-white hover:bg-red-50 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 hover:border-red-300 transition-colors disabled:opacity-50"
         >
+          <span className="material-symbols-outlined text-sm">close</span>
           Отхвърли
         </button>
       </div>
-
-      {/* Inline error */}
-      {error && (
-        <p className="text-red-600 text-xs mt-1">{error}</p>
-      )}
+      {error && <p className="text-red-500 text-xs">{error}</p>}
     </div>
   )
 }

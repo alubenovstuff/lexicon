@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic'
 
 import { unstable_noStore as noStore } from 'next/cache'
-import Link from 'next/link'
 import { createServiceRoleClient } from '@/lib/supabase/server'
+import ModeratorSidebar from '../ModeratorSidebar'
 import SuperheroEditor from './SuperheroEditor'
 
 export default async function SuperheroPage({ params }: { params: { classId: string } }) {
@@ -12,7 +12,7 @@ export default async function SuperheroPage({ params }: { params: { classId: str
 
   const { data: classData } = await supabase
     .from('classes')
-    .select('superhero_prompt, superhero_image_url')
+    .select('id, name, school_year, school_logo_url, superhero_prompt, superhero_image_url')
     .eq('id', classId)
     .single()
 
@@ -45,26 +45,43 @@ export default async function SuperheroPage({ params }: { params: { classId: str
     }
   }
 
+  const [namePart] = classData?.name?.includes(' — ')
+    ? classData.name.split(' — ')
+    : [classData?.name ?? '']
+
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <Link
-        href={`/moderator/${classId}`}
-        className="text-sm text-gray-500 hover:text-gray-700 inline-block mb-6"
-      >
-        ← Към dashboard
-      </Link>
-
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Супергерой на класа</h1>
-      <p className="text-sm text-gray-500 mb-8">
-        Децата са описали своята учителка като супергерой. Генерирай описание с AI и след това — илюстрация.
-      </p>
-
-      <SuperheroEditor
+    <div className="flex min-h-screen bg-[#faf9f8]" style={{ fontFamily: 'Manrope, sans-serif' }}>
+      <ModeratorSidebar
         classId={classId}
-        answers={answers}
-        savedPrompt={classData?.superhero_prompt ?? null}
-        savedImageUrl={classData?.superhero_image_url ?? null}
+        namePart={namePart}
+        schoolYear={classData?.school_year ?? null}
+        logoUrl={classData?.school_logo_url ?? null}
+        active="superhero"
       />
+
+      <main className="ml-64 flex-1 p-8 lg:p-12">
+        <div className="mb-10">
+          <p className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-2">
+            Специален момент
+          </p>
+          <h1
+            className="text-4xl font-bold text-gray-900 leading-tight"
+            style={{ fontFamily: 'Noto Serif, serif' }}
+          >
+            Супергерой на класа
+          </h1>
+          <p className="text-sm text-gray-500 mt-2 max-w-lg">
+            Децата са описали своята учителка като супергерой. Генерирай описание с AI и след това — илюстрация.
+          </p>
+        </div>
+
+        <SuperheroEditor
+          classId={classId}
+          answers={answers}
+          savedPrompt={classData?.superhero_prompt ?? null}
+          savedImageUrl={classData?.superhero_image_url ?? null}
+        />
+      </main>
     </div>
   )
 }

@@ -1,0 +1,109 @@
+import Link from 'next/link'
+
+type ActiveNav =
+  | 'dashboard'
+  | 'students'
+  | 'answers'
+  | 'messages'
+  | 'questions'
+  | 'events'
+  | 'superhero'
+  | 'finalize'
+  | null
+
+interface Props {
+  classId: string
+  namePart: string
+  schoolYear: string | null
+  logoUrl: string | null
+  active: ActiveNav
+}
+
+const NAV_ITEMS = [
+  { key: 'dashboard', icon: 'dashboard', label: 'Табло', sub: '' },
+  { key: 'students', icon: 'group', label: 'Деца', sub: '/students' },
+  { key: 'answers', icon: 'volunteer_activism', label: 'Отговори', sub: '/answers' },
+  { key: 'messages', icon: 'forum', label: 'Послания', sub: '/messages' },
+  { key: 'questions', icon: 'quiz', label: 'Въпросник', sub: '/questions' },
+  { key: 'events', icon: 'calendar_month', label: 'Събития', sub: '/events' },
+] as const
+
+export default function ModeratorSidebar({ classId, namePart, schoolYear, logoUrl, active }: Props) {
+  const base = `/moderator/${classId}`
+
+  return (
+    <aside
+      className="w-64 fixed left-0 top-0 h-screen bg-[#f4f3f2] flex flex-col p-4 z-50"
+      style={{ fontFamily: 'Manrope, sans-serif' }}
+    >
+      {/* Brand */}
+      <div className="px-2 py-4">
+        <h1
+          className="text-indigo-900 text-xl font-bold tracking-tight"
+          style={{ fontFamily: 'Noto Serif, serif' }}
+        >
+          Един неразделен клас
+        </h1>
+        <p className="text-xs text-slate-400 uppercase tracking-widest mt-1">Admin Panel</p>
+      </div>
+
+      {/* Profile */}
+      <div className="flex items-center gap-3 px-2 py-3 bg-white/60 rounded-xl mb-4">
+        {logoUrl ? (
+          <img
+            src={logoUrl}
+            alt="Лого"
+            className="w-10 h-10 rounded-full object-contain bg-white border border-gray-100 p-0.5"
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
+            {namePart[0] ?? '?'}
+          </div>
+        )}
+        <div className="overflow-hidden">
+          <p className="font-bold text-sm text-indigo-900 truncate">{namePart}</p>
+          {schoolYear && <p className="text-xs text-slate-400 truncate">{schoolYear}</p>}
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 space-y-0.5">
+        {NAV_ITEMS.map((item) => (
+          <Link
+            key={item.key}
+            href={`${base}${item.sub}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm ${
+              active === item.key
+                ? 'bg-white text-indigo-700 font-semibold shadow-sm'
+                : 'text-slate-500 hover:bg-white/50'
+            }`}
+          >
+            <span className="material-symbols-outlined text-xl">{item.icon}</span>
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+
+      {/* Bottom */}
+      <div className="pt-4 space-y-2">
+        <Link
+          href={base}
+          className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-white/50 transition-colors text-sm"
+        >
+          <span className="material-symbols-outlined text-xl">help</span>
+          Помощен център
+        </Link>
+        <Link
+          href={`${base}/finalize`}
+          className={`w-full block py-3 px-4 rounded-xl font-bold text-sm text-center shadow transition-opacity ${
+            active === 'finalize'
+              ? 'bg-gradient-to-br from-indigo-700 to-indigo-600 text-white opacity-100'
+              : 'bg-gradient-to-br from-indigo-600 to-indigo-500 text-white hover:opacity-90'
+          }`}
+        >
+          Финализирай лексикона
+        </Link>
+      </div>
+    </aside>
+  )
+}

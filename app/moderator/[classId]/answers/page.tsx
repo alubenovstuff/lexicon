@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic'
 
 import { unstable_noStore as noStore } from 'next/cache'
-import Link from 'next/link'
 import { createServiceRoleClient } from '@/lib/supabase/server'
+import ModeratorSidebar from '../ModeratorSidebar'
 import AnswersTable from './AnswersTable'
 
 interface AnswerRow {
@@ -52,85 +52,18 @@ export default async function AnswersPage({ params }: { params: { classId: strin
     ? classData.name.split(' — ')
     : [classData?.name ?? '']
 
-  const base = `/moderator/${classId}`
-
-  const navItems = [
-    { icon: 'dashboard', label: 'Табло', href: base },
-    { icon: 'group', label: 'Деца', href: `${base}/students` },
-    { icon: 'volunteer_activism', label: 'Отговори', href: `${base}/answers`, active: true },
-    { icon: 'quiz', label: 'Въпросник', href: `${base}/questions` },
-    { icon: 'calendar_month', label: 'Събития', href: `${base}/events` },
-  ]
-
   const pendingCount = answers.filter((a) => a.status === 'submitted').length
   const approvedCount = answers.filter((a) => a.status === 'approved').length
 
   return (
     <div className="flex min-h-screen bg-[#faf9f8]" style={{ fontFamily: 'Manrope, sans-serif' }}>
-
-      {/* ── Sidebar ──────────────────────────────────────────────────── */}
-      <aside className="w-64 fixed left-0 top-0 h-screen bg-[#f4f3f2] flex flex-col p-4 z-50">
-        <div className="px-2 py-4">
-          <h1
-            className="text-indigo-900 text-xl font-bold tracking-tight"
-            style={{ fontFamily: 'Noto Serif, serif' }}
-          >
-            Един неразделен клас
-          </h1>
-          <p className="text-xs text-slate-400 uppercase tracking-widest mt-1">Admin Panel</p>
-        </div>
-
-        <div className="flex items-center gap-3 px-2 py-3 bg-white/60 rounded-xl mb-4">
-          {classData?.school_logo_url ? (
-            <img
-              src={classData.school_logo_url}
-              alt="Лого"
-              className="w-10 h-10 rounded-full object-contain bg-white border border-gray-100 p-0.5"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
-              {namePart[0]}
-            </div>
-          )}
-          <div className="overflow-hidden">
-            <p className="font-bold text-sm text-indigo-900 truncate">{namePart}</p>
-            <p className="text-xs text-slate-400 truncate">{classData?.school_year}</p>
-          </div>
-        </div>
-
-        <nav className="flex-1 space-y-0.5">
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm ${
-                item.active
-                  ? 'bg-white text-indigo-700 font-semibold shadow-sm'
-                  : 'text-slate-500 hover:bg-white/50'
-              }`}
-            >
-              <span className="material-symbols-outlined text-xl">{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="pt-4 space-y-2">
-          <Link
-            href={base}
-            className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-white/50 transition-colors text-sm"
-          >
-            <span className="material-symbols-outlined text-xl">help</span>
-            Помощен център
-          </Link>
-          <Link
-            href={`${base}/finalize`}
-            className="w-full block bg-gradient-to-br from-indigo-600 to-indigo-500 text-white py-3 px-4 rounded-xl font-bold text-sm text-center shadow hover:opacity-90 transition-opacity"
-          >
-            Финализирай лексикона
-          </Link>
-        </div>
-      </aside>
+      <ModeratorSidebar
+        classId={classId}
+        namePart={namePart}
+        schoolYear={classData?.school_year ?? null}
+        logoUrl={classData?.school_logo_url ?? null}
+        active="answers"
+      />
 
       {/* ── Main ─────────────────────────────────────────────────────── */}
       <main className="ml-64 flex-1 p-8 lg:p-12">

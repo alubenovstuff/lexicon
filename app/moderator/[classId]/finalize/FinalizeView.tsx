@@ -70,89 +70,94 @@ export default function FinalizeView({
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-2xl mx-auto px-4 py-6 flex items-center gap-3">
-          <Link href={`/moderator/${classId}`} className="text-gray-400 hover:text-gray-600 text-sm">
-            ← Назад
+    <div className="max-w-2xl space-y-5">
+      {/* Published banner */}
+      {isPublished && (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
+          <span className="material-symbols-outlined text-4xl text-green-500 block mb-2">celebration</span>
+          <p className="text-green-800 font-bold text-lg mb-1">Лексиконът е публикуван!</p>
+          <p className="text-green-700 text-sm mb-4">Родителите вече могат да го разгледат.</p>
+          <Link
+            href={`/lexicon/${classId}`}
+            className="inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors"
+          >
+            <span className="material-symbols-outlined text-base">open_in_new</span>
+            Виж публикувания
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Финализирай</h1>
+        </div>
+      )}
+
+      {/* Summary */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">Резюме — {className}</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-[#faf9f8] rounded-xl p-4 text-center">
+            <p className="text-3xl font-bold text-indigo-600">{totalStudents}</p>
+            <p className="text-xs text-gray-400 mt-1 uppercase tracking-wider">Деца в класа</p>
+          </div>
+          <div className="bg-[#faf9f8] rounded-xl p-4 text-center">
+            <p className="text-3xl font-bold text-indigo-600">{approvedAnswers}</p>
+            <p className="text-xs text-gray-400 mt-1 uppercase tracking-wider">Одобрени отговора</p>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-        {isPublished && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
-            <p className="text-green-800 font-semibold text-lg mb-2">Продуктът е публикуван!</p>
-            <p className="text-green-700 text-sm mb-4">Родителите вече могат да го разгледат.</p>
-            <Link
-              href={`/lexicon/${classId}`}
-              className="inline-block bg-indigo-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors"
+      {/* Checklist */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">
+          Проверка преди публикуване
+        </p>
+        <div className="space-y-1">
+          {checks.map((check) => (
+            <div
+              key={check.label}
+              className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0"
             >
-              Виж публикувания →
-            </Link>
-          </div>
-        )}
-
-        {/* Class summary */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6">
-          <h2 className="font-semibold text-gray-800 mb-4">Резюме — {className}</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 rounded-xl p-4 text-center">
-              <p className="text-3xl font-bold text-indigo-600">{totalStudents}</p>
-              <p className="text-xs text-gray-500 mt-1">Деца в класа</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-4 text-center">
-              <p className="text-3xl font-bold text-indigo-600">{approvedAnswers}</p>
-              <p className="text-xs text-gray-500 mt-1">Одобрени отговора</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Checklist */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6">
-          <h2 className="font-semibold text-gray-800 mb-4">Проверка преди публикуване</h2>
-          <div className="space-y-3">
-            {checks.map((check) => (
-              <div key={check.label} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                <div className="flex items-center gap-3">
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${
-                    check.ok ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {check.ok ? '✓' : '!'}
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    check.ok ? 'bg-green-100' : 'bg-amber-100'
+                  }`}
+                >
+                  <span
+                    className={`material-symbols-outlined text-sm ${
+                      check.ok ? 'text-green-600' : 'text-amber-600'
+                    }`}
+                  >
+                    {check.ok ? 'check' : 'warning'}
                   </span>
-                  <span className="text-sm text-gray-700">{check.label}</span>
                 </div>
-                <span className={`text-xs font-medium ${check.ok ? 'text-green-600' : 'text-yellow-600'}`}>
-                  {check.detail}
-                </span>
+                <span className="text-sm text-gray-700">{check.label}</span>
               </div>
-            ))}
-          </div>
-          <p className="text-xs text-gray-400 mt-4">
-            Предупрежденията не блокират публикуването. Можеш да публикуваш по всяко време.
+              <span
+                className={`text-xs font-semibold ${check.ok ? 'text-green-600' : 'text-amber-600'}`}
+              >
+                {check.detail}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 mt-4">
+          Предупрежденията не блокират публикуването. Можеш да публикуваш по всяко време.
+        </p>
+      </div>
+
+      {/* Publish */}
+      {!isPublished && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
+          <button
+            onClick={handlePublish}
+            disabled={loading}
+            className="w-full bg-gradient-to-br from-indigo-600 to-indigo-500 text-white font-bold py-3.5 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity shadow text-sm"
+          >
+            {loading ? 'Публикуване...' : 'Публикувай лексикона'}
+          </button>
+          <p className="text-xs text-gray-400 text-center mt-3">
+            След публикуване лексиконът ще бъде достъпен за всички родители.
           </p>
         </div>
-
-        {/* Publish button */}
-        {!isPublished && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            {error && (
-              <p className="text-sm text-red-600 mb-4">{error}</p>
-            )}
-            <button
-              onClick={handlePublish}
-              disabled={loading}
-              className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-            >
-              {loading ? 'Публикуване...' : 'Публикувай'}
-            </button>
-            <p className="text-xs text-gray-400 text-center mt-3">
-              След публикуване продуктът ще бъде достъпен за всички родители.
-            </p>
-          </div>
-        )}
-      </div>
-    </main>
+      )}
+    </div>
   )
 }
