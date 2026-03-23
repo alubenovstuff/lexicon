@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import { useState, useTransition } from 'react'
+import { updateClassInfo } from './actions'
 
 interface Props {
-  classData: { id: string; name: string; school_year: string; status: string }
+  classData: { id: string; name: string; school_year: string; status: string; school_logo_url: string | null }
   students: Array<{ id: string; first_name: string; last_name: string; invite_accepted_at: string | null }>
   pendingAnswers: number
   pendingMessages: number
@@ -39,23 +41,156 @@ export default function Dashboard({ classData, students, pendingAnswers, pending
 
   const statusLabel = STATUS_LABELS[classData.status] ?? classData.status
   const statusColor = STATUS_COLORS[classData.status] ?? 'bg-gray-100 text-gray-600'
-
   const baseUrl = `/moderator/${classData.id}`
+
+  // Split stored name "3А — ОУ Христо Ботев" back into parts
+  const [namePart, schoolPart] = classData.name.includes(' — ')
+    ? classData.name.split(' — ')
+    : [classData.name, '']
+
+  const [editing, setEditing] = useState(false)
+  const [className, setClassName] = useState(namePart)
+  const [school, setSchool] = useState(schoolPart)
+  const [schoolYear, setSchoolYear] = useState(classData.school_year)
+  const [logoUrl, setLogoUrl] = useState<string | null>(classData.school_logo_url)
+  const [logoUploading, setLogoUploading] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/media/upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (data.url) setLogoUrl(data.url)
+    } catch {
+      setSaveError('Качването на логото не успя.')
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  function handleSave() {
+    if (!className.trim() || !school.trim() || !schoolYear.trim()) {
+      setSaveError('Моля попълнете всички полета.')
+      return
+    }
+    setSaveError(null)
+    startTransition(async () => {
+      const result = await updateClassInfo(classData.id, {
+        name: `${className.trim()} — ${school.trim()}`,
+        school_year: schoolYear.trim(),
+        school_logo_url: logoUrl ?? undefined,
+      })
+      if (result.error) {
+        setSaveError(result.error)
+      } else {
+        setEditing(false)
+      }
+    })
+  }
 
   return (
     <main className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-6 py-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{classData.name}</h1>
-              <p className="text-sm text-gray-500 mt-1">Учебна година: {classData.school_year}</p>
+          {editing ? (
+            <div className="space-y-4">
+              {saveError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-lg">
+                  {saveError}
+                </div>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Клас</label>
+                  <input
+                    value={className}
+                    onChange={(e) => setClassName(e.target.value)}
+                    placeholder="3А"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Училище</label>
+                  <input
+                    value={school}
+                    onChange={(e) => setSchool(e.target.value)}
+                    placeholder="ОУ Христо Ботев"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Учебна година</label>
+                  <input
+                    value={schoolYear}
+                    onChange={(e) => setSchoolYear(e.target.value)}
+                    placeholder="2024/2025"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
+                  {logoUrl && (
+                    <img src={logoUrl} alt="Лого" className="w-12 h-12 rounded-lg object-contain border border-gray-200 bg-white p-1" />
+                  )}
+                  <label className="cursor-pointer inline-flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors">
+                    {logoUploading ? 'Качване...' : logoUrl ? 'Смени лого' : 'Качи лого'}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} disabled={logoUploading} />
+                  </label>
+                  {logoUrl && (
+                    <button onClick={() => setLogoUrl(null)} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                      Премахни
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-2 ml-auto">
+                  <button
+                    onClick={() => { setEditing(false); setSaveError(null) }}
+                    className="text-sm text-gray-500 hover:text-gray-700 px-4 py-2"
+                  >
+                    Отказ
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isPending || logoUploading}
+                    className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                  >
+                    {isPending ? 'Запазване...' : 'Запази'}
+                  </button>
+                </div>
+              </div>
             </div>
-            <span className={`text-xs font-medium px-3 py-1 rounded-full ${statusColor}`}>
-              {statusLabel}
-            </span>
-          </div>
+          ) : (
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-4">
+                {logoUrl && (
+                  <img src={logoUrl} alt="Лого" className="w-12 h-12 rounded-lg object-contain border border-gray-100 bg-white p-1 shadow-sm" />
+                )}
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">{classData.name}</h1>
+                  <p className="text-sm text-gray-500 mt-0.5">Учебна година: {classData.school_year}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`text-xs font-medium px-3 py-1 rounded-full ${statusColor}`}>
+                  {statusLabel}
+                </span>
+                <button
+                  onClick={() => setEditing(true)}
+                  className="text-xs text-gray-400 hover:text-indigo-600 border border-gray-200 hover:border-indigo-300 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  Редактирай
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
