@@ -3,11 +3,14 @@
 import { useState, useTransition } from 'react'
 import { createEvent, updateEvent, deleteEvent } from './actions'
 
+const MAX_PHOTOS = 3
+
 interface Event {
   id: string
   title: string
   event_date: string | null
   note: string | null
+  photos: string[]
   order_index: number
 }
 
@@ -122,6 +125,8 @@ function EventRow({
   index: number
 }) {
   const [editing, setEditing] = useState(false)
+  const [photos, setPhotos] = useState<string[]>(event.photos ?? [])
+  const [uploading, setUploading] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   function handleSave(form: { title: string; event_date: string; note: string }) {
@@ -142,6 +147,42 @@ function EventRow({
     })
   }
 
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || photos.length >= MAX_PHOTOS) return
+    e.target.value = ''
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/media/upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (data.url) {
+        const newPhotos = [...photos, data.url]
+        setPhotos(newPhotos)
+        await updateEvent(classId, event.id, {
+          title: event.title,
+          event_date: event.event_date,
+          note: event.note,
+          photos: newPhotos,
+        })
+      }
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handleRemovePhoto(url: string) {
+    const newPhotos = photos.filter((p) => p !== url)
+    setPhotos(newPhotos)
+    await updateEvent(classId, event.id, {
+      title: event.title,
+      event_date: event.event_date,
+      note: event.note,
+      photos: newPhotos,
+    })
+  }
+
   if (editing) {
     return (
       <EventForm
@@ -158,35 +199,78 @@ function EventRow({
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 flex items-center gap-4">
-      <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
-        {index + 1}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-800">{event.title}</p>
-        <div className="flex items-center gap-3 mt-0.5">
-          {event.event_date && (
-            <span className="text-xs text-gray-400">{formatDate(event.event_date)}</span>
-          )}
-          {event.note && (
-            <span className="text-xs text-gray-400 italic">{event.note}</span>
-          )}
+    <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 space-y-3">
+      <div className="flex items-center gap-4">
+        <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
+          {index + 1}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-800">{event.title}</p>
+          <div className="flex items-center gap-3 mt-0.5">
+            {event.event_date && (
+              <span className="text-xs text-gray-400">{formatDate(event.event_date)}</span>
+            )}
+            {event.note && (
+              <span className="text-xs text-gray-400 italic">{event.note}</span>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-3 flex-shrink-0">
+          <button
+            onClick={() => setEditing(true)}
+            className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+          >
+            Редактирай
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isPending}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+          >
+            Изтрий
+          </button>
         </div>
       </div>
-      <div className="flex gap-3 flex-shrink-0">
-        <button
-          onClick={() => setEditing(true)}
-          className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
-        >
-          Редактирай
-        </button>
-        <button
-          onClick={handleDelete}
-          disabled={isPending}
-          className="text-xs text-gray-400 hover:text-red-500 transition-colors"
-        >
-          Изтрий
-        </button>
+
+      {/* Photos */}
+      <div className="flex items-center gap-3 pl-11 flex-wrap">
+        {photos.map((url) => (
+          <div key={url} className="relative group">
+            <img
+              src={url}
+              alt=""
+              className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+            />
+            <button
+              onClick={() => handleRemovePhoto(url)}
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs hidden group-hover:flex items-center justify-center"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+
+        {photos.length < MAX_PHOTOS && (
+          <label className={`w-20 h-20 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${uploading ? 'border-gray-200 opacity-50' : 'border-gray-300 hover:border-indigo-400 hover:bg-indigo-50'}`}>
+            {uploading ? (
+              <span className="text-xs text-gray-400">...</span>
+            ) : (
+              <>
+                <span className="text-gray-400 text-xl leading-none">+</span>
+                <span className="text-xs text-gray-400 mt-0.5">Снимка</span>
+              </>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+              disabled={uploading}
+            />
+          </label>
+        )}
+
+        <span className="text-xs text-gray-400">{photos.length}/{MAX_PHOTOS}</span>
       </div>
     </div>
   )
@@ -224,6 +308,7 @@ export default function EventsEditor({
             title: form.title,
             event_date: form.event_date || null,
             note: form.note || null,
+            photos: [],
             order_index: prev.length + 1,
           },
         ])

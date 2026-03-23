@@ -29,13 +29,20 @@ export async function createEvent(
 export async function updateEvent(
   classId: string,
   eventId: string,
-  data: { title: string; event_date: string | null; note: string | null }
+  data: { title: string; event_date: string | null; note: string | null; photos?: string[] }
 ): Promise<{ error: string | null }> {
   const supabase = createServiceRoleClient()
 
+  const update: Record<string, unknown> = {
+    title: data.title,
+    event_date: data.event_date || null,
+    note: data.note || null,
+  }
+  if (data.photos !== undefined) update.photos = data.photos
+
   const { error } = await supabase
     .from('events')
-    .update({ title: data.title, event_date: data.event_date || null, note: data.note || null })
+    .update(update)
     .eq('id', eventId)
     .eq('class_id', classId)
 

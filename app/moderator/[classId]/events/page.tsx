@@ -19,7 +19,7 @@ export default async function EventsPage({ params }: { params: { classId: string
 
   const { data: events } = await admin
     .from('events')
-    .select('id, title, event_date, note, order_index')
+    .select('id, title, event_date, note, photos, order_index')
     .eq('class_id', classId)
     .order('order_index')
 
@@ -41,7 +41,10 @@ export default async function EventsPage({ params }: { params: { classId: string
           </p>
         </div>
 
-        <EventsEditor classId={classId} initialEvents={events ?? []} />
+        <EventsEditor
+          classId={classId}
+          initialEvents={(events ?? []).map((e) => ({ ...e, photos: e.photos ?? [] }))}
+        />
       </div>
     </main>
   )
