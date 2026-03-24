@@ -7,17 +7,17 @@ import { defaultTemplate } from '@/lib/templates/presets'
 import type { Block } from '@/lib/templates/types'
 import LexiconShell from './LexiconShell'
 import LexiconBlocks from './LexiconBlocks'
-import type { LexiconData } from './LexiconBlocks'
+import type { LexiconData, QuestionAnswer, VoiceItem } from './LexiconBlocks'
 
 export default async function LexiconCoverPage({ params }: { params: Promise<{ classId: string }> }) {
   noStore()
   const { classId } = await params
   const admin = createServiceRoleClient()
 
-  // ── Class data ──────────────────────────────────────────────────────
+  // ── Class ──────────────────────────────────────────────────────────────
   const { data: classData } = await admin
     .from('classes')
-    .select('id, name, school_year, status, superhero_prompt, superhero_image_url, school_logo_url, cover_image_url, layout, template_id')
+    .select('id, name, status, superhero_prompt, superhero_image_url, school_logo_url, cover_image_url, layout, template_id')
     .eq('id', classId)
     .single()
 
@@ -27,101 +27,141 @@ export default async function LexiconCoverPage({ params }: { params: Promise<{ c
     ? classData.name.split(' — ')
     : [classData.name, null]
 
-  // Use saved layout or fall back to default template blocks
   const blocks: Block[] = (classData.layout as Block[] | null) ?? defaultTemplate.blocks
 
-  // ── Students ────────────────────────────────────────────────────────
+  // ── Collect linked IDs from block configs ──────────────────────────────
+  const linkedQuestionIds = new Set<string>()
+  const linkedVoiceIds    = new Set<string>()
+  const linkedPollIds     = new Set<string>()
+
+  for (const b of blocks) {
+    const cfg = b.config as Record<string, unknown>
+    if ((b.type === 'question' || b.type === 'photo_gallery') && cfg.questionId) {
+      linkedQuestionIds.add(cfg.questionId as string)
+    }
+    if (b.type === 'class_voice' && cfg.questionId) {
+      linkedVoiceIds.add(cfg.questionId as string)
+    }
+    if (b.type === 'poll' && cfg.pollId) {
+      linkedPollIds.add(cfg.pollId as string)
+    }
+  }
+
+  // ── Students ───────────────────────────────────────────────────────────
   const { data: students } = await admin
     .from('students')
     .select('id, first_name, last_name, photo_url')
     .eq('class_id', classId)
     .order('last_name')
-
   const studentList = students ?? []
+  const studentMap = new Map(studentList.map(s => [s.id, s]))
 
-  // ── Teasers: first personal question answers ─────────────────────────
-  const { data: firstPersonalQArr } = await admin
-    .from('questions')
-    .select('id')
-    .eq('class_id', classId)
-    .eq('type', 'personal')
-    .order('order_index')
-    .limit(1)
+  // ── Question answers (personal questions) ─────────────────────────────
+  const questionData: LexiconData['questionData'] = {}
 
-  const teaserMap: Record<string, string> = {}
-  if (firstPersonalQArr?.[0]) {
-    const { data: teaserAnswers } = await admin
-      .from('answers')
-      .select('student_id, text_content')
-      .eq('question_id', firstPersonalQArr[0].id)
-      .eq('status', 'approved')
-    for (const a of teaserAnswers ?? []) {
-      if (a.text_content) teaserMap[a.student_id] = a.text_content
+  if (linkedQuestionIds.size > 0) {
+    const ids = [...linkedQuestionIds]
+
+    const [qTexts, answers] = await Promise.all([
+      admin.from('questions').select('id, text').in('id', ids),
+      admin.from('answers')
+        .select('id, question_id, student_id, text_content, media_url, media_type')
+        .in('question_id', ids)
+        .eq('status', 'approved'),
+    ])
+
+    for (const q of qTexts.data ?? []) {
+      const qAnswers: QuestionAnswer[] = (answers.data ?? [])
+        .filter(a => a.question_id === q.id)
+        .map(a => {
+          const s = studentMap.get(a.student_id)
+          return {
+            id: a.id,
+            student_id: a.student_id,
+            text_content: a.text_content,
+            media_url: a.media_url,
+            media_type: a.media_type,
+            student: s ? { first_name: s.first_name, last_name: s.last_name, photo_url: s.photo_url ?? null } : null,
+          }
+        })
+      questionData[q.id] = { text: q.text, answers: qAnswers }
     }
   }
 
-  // ── Voice answers (word cloud) ───────────────────────────────────────
-  const { data: voiceQs } = await admin
-    .from('questions')
-    .select('id, text')
-    .eq('class_id', classId)
-    .eq('type', 'class_voice')
-    .order('order_index')
+  // ── Class voice answers ────────────────────────────────────────────────
+  const voiceData: LexiconData['voiceData'] = {}
 
-  const voiceQIds = (voiceQs ?? []).map(q => q.id)
-  const voiceAnswersRaw = voiceQIds.length > 0
-    ? ((await admin.from('class_voice_answers').select('question_id, content').eq('class_id', classId).in('question_id', voiceQIds)).data ?? [])
-    : []
+  if (linkedVoiceIds.size > 0) {
+    const ids = [...linkedVoiceIds]
+    const [qTexts, voiceAnswers] = await Promise.all([
+      admin.from('questions').select('id, text').in('id', ids),
+      admin.from('class_voice_answers').select('question_id, content').eq('class_id', classId).in('question_id', ids),
+    ])
 
-  const firstVoiceQ = voiceQs?.[0] ?? null
-  const firstVoiceAnswers = firstVoiceQ
-    ? voiceAnswersRaw.filter(a => a.question_id === firstVoiceQ.id).map(a => a.content)
-    : []
-
-  const voiceFreq: Record<string, number> = {}
-  for (const a of firstVoiceAnswers) {
-    const key = a.trim().toLowerCase()
-    voiceFreq[key] = (voiceFreq[key] ?? 0) + 1
+    for (const q of qTexts.data ?? []) {
+      const raw = (voiceAnswers.data ?? []).filter(a => a.question_id === q.id).map(a => a.content)
+      const freq: Record<string, number> = {}
+      for (const w of raw) {
+        const k = w.trim().toLowerCase()
+        freq[k] = (freq[k] ?? 0) + 1
+      }
+      const maxF = Math.max(...Object.values(freq), 1)
+      const items: VoiceItem[] = Object.entries(freq)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 12)
+        .map(([k, n]) => ({
+          text: raw.find(w => w.trim().toLowerCase() === k) ?? k,
+          size: n >= maxF * 0.6 ? 'lg' : n >= maxF * 0.3 ? 'md' : 'sm',
+        }))
+      voiceData[q.id] = { text: q.text, items }
+    }
   }
-  const maxFreq = Math.max(...Object.values(voiceFreq), 1)
-  const voiceItems = Object.entries(voiceFreq)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 12)
-    .map(([key, count]) => ({
-      text: firstVoiceAnswers.find(a => a.trim().toLowerCase() === key) ?? key,
-      size: count >= maxFreq * 0.6 ? 'lg' as const : count >= maxFreq * 0.3 ? 'md' as const : 'sm' as const,
-    }))
 
-  // ── Polls (bar chart) ─────────────────────────────────────────────────
-  const { data: polls } = await admin
-    .from('class_polls')
-    .select('id, question')
-    .eq('class_id', classId)
-    .order('order_index')
+  // ── Poll results ───────────────────────────────────────────────────────
+  const pollData: LexiconData['pollData'] = {}
 
-  const pollIds = (polls ?? []).map(p => p.id)
-  const pollVotesRaw = pollIds.length > 0
-    ? ((await admin.from('class_poll_votes').select('poll_id, nominee_student_id').in('poll_id', pollIds)).data ?? [])
-    : []
+  if (linkedPollIds.size > 0) {
+    const ids = [...linkedPollIds]
+    const [pollRows, votes] = await Promise.all([
+      admin.from('class_polls').select('id, question').in('id', ids),
+      admin.from('class_poll_votes').select('poll_id, nominee_student_id').in('poll_id', ids),
+    ])
 
-  const studentNameMap = new Map(studentList.map(s => [s.id, s.first_name]))
+    for (const p of pollRows.data ?? []) {
+      const pvotes = (votes.data ?? []).filter(v => v.poll_id === p.id)
+      const countMap: Record<string, number> = {}
+      for (const v of pvotes) countMap[v.nominee_student_id] = (countMap[v.nominee_student_id] ?? 0) + 1
+      const total = pvotes.length
+      const nominees = Object.entries(countMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 4)
+        .map(([sid, count]) => ({
+          name: studentMap.get(sid)?.first_name ?? 'Ученик',
+          pct: total > 0 ? Math.round((count / total) * 100) : 0,
+        }))
+      pollData[p.id] = { question: p.question, nominees, totalVotes: total }
+    }
+  }
 
-  const pollResults = (polls ?? []).map(poll => {
-    const votes = pollVotesRaw.filter(v => v.poll_id === poll.id)
-    const countMap: Record<string, number> = {}
-    for (const v of votes) countMap[v.nominee_student_id] = (countMap[v.nominee_student_id] ?? 0) + 1
-    const total = votes.length
-    const nominees = Object.entries(countMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4)
-      .map(([sid, count]) => ({
-        name: studentNameMap.get(sid) ?? 'Ученик',
-        pct: total > 0 ? Math.round((count / total) * 100) : 0,
-      }))
-    return { id: poll.id, question: poll.question, nominees, totalVotes: total }
-  }).filter(p => p.nominees.length > 0)
+  // ── Teaser map for students_grid (use first question block's answers) ──
+  const teaserMap: Record<string, string> = {}
+  const firstQBlock = blocks.find(b => b.type === 'question')
+  const firstQId = (firstQBlock?.config as Record<string, unknown>)?.questionId as string | undefined
+  if (firstQId && questionData[firstQId]) {
+    for (const a of questionData[firstQId].answers) {
+      if (a.text_content) teaserMap[a.student_id] = a.text_content
+    }
+  } else {
+    // fallback: first approved answer of first personal question in DB
+    const { data: firstQ } = await admin
+      .from('questions').select('id').eq('class_id', classId).eq('type', 'personal').order('order_index').limit(1).single()
+    if (firstQ) {
+      const { data: ta } = await admin.from('answers').select('student_id, text_content').eq('question_id', firstQ.id).eq('status', 'approved')
+      for (const a of ta ?? []) { if (a.text_content) teaserMap[a.student_id] = a.text_content }
+    }
+  }
 
-  // ── Events preview ────────────────────────────────────────────────────
+  // ── Events ─────────────────────────────────────────────────────────────
   const { data: events } = await admin
     .from('events')
     .select('id, title, event_date, note, photos')
@@ -141,9 +181,9 @@ export default async function LexiconCoverPage({ params }: { params: Promise<{ c
     schoolPart,
     studentList,
     teaserMap,
-    voiceItems,
-    firstVoiceQ,
-    pollResults,
+    questionData,
+    voiceData,
+    pollData,
     eventList: events ?? [],
   }
 

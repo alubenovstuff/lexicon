@@ -82,3 +82,16 @@ export interface Theme {
   /** Tailwind-safe bg class for template picker card */
   previewBg: string
 }
+
+// Assets available for a class — loaded server-side and passed to the layout editor
+export interface LayoutAsset {
+  id: string
+  label: string
+}
+
+export interface LayoutAssets {
+  questions: (LayoutAsset & { type: string })[]   // personal questions
+  voiceQuestions: LayoutAsset[]                    // class_voice questions
+  polls: LayoutAsset[]
+  events: LayoutAsset[]
+}

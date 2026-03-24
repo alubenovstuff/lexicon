@@ -21,6 +21,7 @@ import BlockCard from './BlockCard'
 import AddBlockDrawer from './AddBlockDrawer'
 import { nanoid } from 'nanoid'
 import { templatePresets } from '@/lib/templates/presets'
+import type { LayoutAssets } from '@/lib/templates/types'
 
 const TEMPLATE_UI = [
   {
@@ -66,9 +67,10 @@ interface Props {
   className: string
   initialBlocks: Block[]
   templateId: string
+  assets: LayoutAssets
 }
 
-export default function LayoutEditor({ classId, className, initialBlocks, templateId: initialTemplateId }: Props) {
+export default function LayoutEditor({ classId, className, initialBlocks, templateId: initialTemplateId, assets }: Props) {
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks)
   const [activeTemplate, setActiveTemplate] = useState(initialTemplateId || 'classic')
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -260,6 +262,7 @@ export default function LayoutEditor({ classId, className, initialBlocks, templa
                   <BlockCard
                     key={block.id}
                     block={block}
+                    assets={assets}
                     onRemove={() => removeBlock(block.id)}
                     onUpdate={(config) => updateBlock(block.id, config)}
                   />
