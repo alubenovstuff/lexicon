@@ -280,6 +280,15 @@ export default function StudentLexiconView({
                 </div>
               )}
             </div>
+            <div className="mt-8">
+              <Link
+                href={`/my/messages/new?recipientId=${student.id}`}
+                className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors shadow"
+              >
+                <span className="material-symbols-outlined text-base">chat</span>
+                Напиши послание
+              </Link>
+            </div>
           </div>
         </section>
 

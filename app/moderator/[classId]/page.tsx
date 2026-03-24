@@ -1,7 +1,6 @@
 import { unstable_noStore as noStore } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server'
-import SetupWizard from './SetupWizard'
 import Dashboard from './Dashboard'
 
 export default async function ModeratorDashboard({ params }: { params: Promise<{ classId: string }> }) {
@@ -32,15 +31,10 @@ export default async function ModeratorDashboard({ params }: { params: Promise<{
   console.log('[ModeratorDashboard] classData:', classData?.id ?? 'null', 'error:', classError?.message ?? 'none')
 
   if (!classData) {
-    redirect('/register')
+    redirect('/moderator')
   }
 
-  // 3. First-time setup: show wizard when class name is still empty
-  if (!classData.name) {
-    return <SetupWizard classId={classId} />
-  }
-
-  // 4. Fetch students
+  // 3. Fetch students
   const { data: students } = await adminClient
     .from('students')
     .select('id, first_name, last_name, invite_accepted_at')

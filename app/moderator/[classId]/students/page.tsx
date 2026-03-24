@@ -46,16 +46,19 @@ export default async function StudentsPage({ params }: { params: Promise<{ class
 
   const studentIds = studentList.map((s) => s.id)
   const approvedCountsMap: Record<string, number> = {}
+  const approvedMessagesMap: Record<string, number> = {}
 
   if (studentIds.length > 0) {
-    const { data: approvedAnswers } = await supabase
-      .from('answers')
-      .select('student_id')
-      .eq('status', 'approved')
-      .in('student_id', studentIds)
+    const [{ data: approvedAnswers }, { data: approvedMessages }] = await Promise.all([
+      supabase.from('answers').select('student_id').eq('status', 'approved').in('student_id', studentIds),
+      supabase.from('peer_messages').select('recipient_student_id').eq('status', 'approved').in('recipient_student_id', studentIds),
+    ])
 
     for (const row of approvedAnswers ?? []) {
       approvedCountsMap[row.student_id] = (approvedCountsMap[row.student_id] ?? 0) + 1
+    }
+    for (const row of approvedMessages ?? []) {
+      approvedMessagesMap[row.recipient_student_id] = (approvedMessagesMap[row.recipient_student_id] ?? 0) + 1
     }
   }
 
@@ -173,8 +176,16 @@ export default async function StudentsPage({ params }: { params: Promise<{ class
           <div className="space-y-3">
             {studentList.map((student) => {
               const approved = approvedCountsMap[student.id] ?? 0
+              const messages = approvedMessagesMap[student.id] ?? 0
               const progress = total > 0 ? Math.round((approved / total) * 100) : 0
               const initials = `${student.first_name.charAt(0)}${student.last_name.charAt(0)}`.toUpperCase()
+
+              const checks = [
+                { icon: 'photo_camera', ok: !!student.photo_url,  label: 'Снимка' },
+                { icon: 'edit_note',    ok: approved >= 2,         label: approved >= 2 ? `${approved} отговора` : `${approved}/2 отговора` },
+                { icon: 'chat',         ok: messages >= 1,         label: messages >= 1 ? `${messages} послания` : 'Без послания' },
+              ]
+              const allDone = checks.every(c => c.ok)
 
               let statusBadge: React.ReactNode
               if (student.invite_accepted_at) {
@@ -234,7 +245,7 @@ export default async function StudentsPage({ params }: { params: Promise<{ class
                     </div>
 
                     {/* Progress */}
-                    <div className="flex-shrink-0 w-36">
+                    <div className="flex-shrink-0 w-32 hidden lg:block">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-gray-400">Отговори</span>
                         <span className="text-xs font-semibold text-gray-600">{approved}/{total}</span>
@@ -245,6 +256,28 @@ export default async function StudentsPage({ params }: { params: Promise<{ class
                           style={{ width: `${progress}%` }}
                         />
                       </div>
+                    </div>
+
+                    {/* Completeness indicators */}
+                    <div className="flex-shrink-0 flex items-center gap-1.5">
+                      {checks.map(c => (
+                        <span
+                          key={c.icon}
+                          title={c.label}
+                          className={`flex items-center justify-center w-7 h-7 rounded-full ${
+                            c.ok
+                              ? 'bg-green-100 text-green-600'
+                              : 'bg-red-50 text-red-400'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                            {c.ok ? 'check' : c.icon}
+                          </span>
+                        </span>
+                      ))}
+                      {allDone && (
+                        <span className="ml-1 text-xs font-bold text-green-600 uppercase tracking-wider">Готов</span>
+                      )}
                     </div>
 
                     {/* Actions */}

@@ -19,79 +19,105 @@ export default async function JoinPage({ params }: Props) {
 
   if (error || !student) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-sm w-full text-center">
-          <div className="text-4xl mb-4">🔗</div>
-          <h1 className="text-xl font-semibold text-gray-800 mb-2">Невалиден линк</h1>
-          <p className="text-gray-500 text-sm">Линкът е невалиден или вече е използван.</p>
+      <div
+        className="min-h-screen bg-[#faf9f8] flex items-center justify-center px-6"
+        style={{ fontFamily: 'Manrope, sans-serif' }}
+      >
+        <div className="max-w-sm w-full text-center">
+          <span className="material-symbols-outlined text-5xl text-gray-200 block mb-4">link_off</span>
+          <h1
+            className="text-2xl font-bold text-gray-900 mb-2"
+            style={{ fontFamily: 'Noto Serif, serif' }}
+          >
+            Невалиден линк
+          </h1>
+          <p className="text-sm text-gray-500">
+            Линкът е невалиден или вече е използван. Свържете се с учителя.
+          </p>
         </div>
       </div>
     )
   }
 
-  // If already registered, check if the parent is currently logged in
+  // Already accepted → show re-login form (or redirect if logged in)
   if (student.invite_accepted_at !== null) {
     const supabase = createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
+    if (user) redirect(`/my/${student.id}`)
 
-    // Already logged in as the right parent — go directly
-    if (user) {
-      redirect(`/my/${student.id}`)
-    }
-
-    // Not logged in — show login form inline
-    const studentName = `${student.first_name} ${student.last_name}`
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-sm w-full">
-          <div className="text-center mb-6">
-            {student.photo_url ? (
-              <img
-                src={student.photo_url}
-                alt={studentName}
-                className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border-2 border-indigo-100"
-              />
-            ) : (
-              <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-3 text-indigo-600 text-2xl font-bold">
-                {student.first_name.charAt(0)}
-              </div>
-            )}
-            <h1 className="text-xl font-bold text-gray-800">{studentName}</h1>
-          </div>
-          <JoinLoginForm
-            studentId={student.id}
-            studentName={studentName}
-            parentEmail={student.parent_email ?? ''}
-          />
-        </div>
-      </div>
+      <JoinShell student={student}>
+        <JoinLoginForm
+          studentId={student.id}
+          studentName={`${student.first_name} ${student.last_name}`}
+          parentEmail={student.parent_email ?? ''}
+        />
+      </JoinShell>
     )
   }
 
-  const studentName = `${student.first_name} ${student.last_name}`
-
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-sm w-full">
-        <div className="text-center mb-6">
-          {student.photo_url ? (
-            <img
-              src={student.photo_url}
-              alt={studentName}
-              className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border-2 border-indigo-100"
-            />
-          ) : (
-            <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-3 text-indigo-600 text-2xl font-bold">
-              {student.first_name.charAt(0)}
-            </div>
-          )}
-          <h1 className="text-xl font-bold text-gray-800">{studentName}</h1>
+    <JoinShell student={student}>
+      <JoinForm
+        studentId={student.id}
+        studentName={`${student.first_name} ${student.last_name}`}
+        parentEmail={student.parent_email ?? ''}
+      />
+    </JoinShell>
+  )
+}
+
+function JoinShell({
+  student,
+  children,
+}: {
+  student: { first_name: string; last_name: string; photo_url: string | null }
+  children: React.ReactNode
+}) {
+  const initials = `${student.first_name[0]}${student.last_name[0]}`.toUpperCase()
+  return (
+    <div
+      className="min-h-screen bg-[#faf9f8] flex flex-col items-center justify-center px-6 py-16"
+      style={{ fontFamily: 'Manrope, sans-serif' }}
+    >
+      {/* Brand */}
+      <p
+        className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-8"
+      >
+        Един неразделен клас
+      </p>
+
+      <div className="w-full max-w-sm">
+        {/* Student card */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 mb-4">
+          <div className="flex flex-col items-center mb-6">
+            {student.photo_url ? (
+              <img
+                src={student.photo_url}
+                alt={`${student.first_name} ${student.last_name}`}
+                className="w-20 h-20 rounded-full object-cover border-4 border-indigo-50 mb-3"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-2xl mb-3"
+                style={{ fontFamily: 'Noto Serif, serif' }}
+              >
+                {initials}
+              </div>
+            )}
+            <h1
+              className="text-xl font-bold text-gray-900"
+              style={{ fontFamily: 'Noto Serif, serif' }}
+            >
+              {student.first_name} {student.last_name}
+            </h1>
+          </div>
+
+          {children}
         </div>
-        <JoinForm
-          studentId={student.id}
-          studentName={studentName}
-          parentEmail={student.parent_email ?? ''}
-        />
+
+        <p className="text-center text-xs text-gray-400">
+          Вашите данни са защитени и никога няма да бъдат споделени.
+        </p>
       </div>
     </div>
   )

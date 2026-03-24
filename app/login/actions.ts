@@ -53,5 +53,11 @@ export async function loginModerator(prevState: State, formData: FormData): Prom
     return { error: null, redirectTo: `/my/${studentData.id}` }
   }
 
-  return { error: null, redirectTo: '/register' }
+  // Check if admin
+  if (authData.user.email === process.env.ADMIN_EMAIL) {
+    return { error: null, redirectTo: '/admin' }
+  }
+
+  // Moderator with no class yet
+  return { error: null, redirectTo: '/moderator' }
 }

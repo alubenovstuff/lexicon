@@ -14,7 +14,7 @@ export default async function LexiconCoverPage({ params }: { params: Promise<{ c
   // ── Class data ──────────────────────────────────────────────────────
   const { data: classData } = await admin
     .from('classes')
-    .select('id, name, school_year, status, superhero_prompt, superhero_image_url, school_logo_url')
+    .select('id, name, school_year, status, superhero_prompt, superhero_image_url, school_logo_url, cover_image_url')
     .eq('id', classId)
     .single()
 
@@ -131,9 +131,9 @@ export default async function LexiconCoverPage({ params }: { params: Promise<{ c
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section className="mb-12">
         <div className="relative rounded-[2rem] overflow-hidden shadow-2xl aspect-[4/3] md:aspect-[16/7]">
-          {classData.superhero_image_url ? (
+          {(classData.superhero_image_url ?? classData.cover_image_url) ? (
             <img
-              src={classData.superhero_image_url}
+              src={(classData.superhero_image_url ?? classData.cover_image_url)!}
               alt={classData.name}
               className="w-full h-full object-cover"
             />

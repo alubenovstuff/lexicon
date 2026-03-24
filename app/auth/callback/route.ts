@@ -69,6 +69,8 @@ export async function GET(request: NextRequest) {
     .from('classes')
     .select('id')
     .eq('moderator_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .single()
 
   if (classData) {
@@ -85,5 +87,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/my/${studentData.id}`)
   }
 
-  return NextResponse.redirect(`${origin}/login`)
+  // Admin check
+  if (user.email === process.env.ADMIN_EMAIL) {
+    return NextResponse.redirect(`${origin}/admin`)
+  }
+
+  // Moderator with no class yet — send to hub
+  return NextResponse.redirect(`${origin}/moderator`)
 }

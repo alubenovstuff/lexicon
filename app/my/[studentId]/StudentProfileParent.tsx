@@ -300,6 +300,21 @@ export default function StudentProfileParent({
 
       <div className="max-w-xl mx-auto px-4 py-6 space-y-3">
 
+        {/* All done banner */}
+        {progressPercent === 100 && (
+          <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-4 flex items-start gap-3">
+            <span className="material-symbols-outlined text-green-500 text-xl mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
+              celebration
+            </span>
+            <div>
+              <p className="text-sm font-bold text-green-800 mb-0.5">Профилът е готов!</p>
+              <p className="text-xs text-green-700 leading-relaxed">
+                Отлична работа! Профилът на {student.first_name} е напълно попълнен. Учителят ще прегледа отговорите и ще ги одобри.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Class inactive banner */}
         {!isClassActive && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
