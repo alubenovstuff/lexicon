@@ -102,6 +102,7 @@ export default function Dashboard({
     { icon: 'volunteer_activism', label: 'Отговори', href: `${base}/answers` },
     { icon: 'quiz', label: 'Въпросник', href: `${base}/questions` },
     { icon: 'calendar_month', label: 'Събития', href: `${base}/events` },
+    { icon: 'view_quilt', label: 'Лексикон', href: `${base}/layout` },
     { icon: 'settings', label: 'Настройки', href: '#', onClick: () => setEditingSettings(true) },
   ]
 

@@ -1,6 +1,7 @@
 'use server'
 
 import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { templatePresets, defaultTemplate } from '@/lib/templates/presets'
 
 interface State {
   error: string | null
@@ -19,12 +20,14 @@ export async function createClass(prevState: State, formData: FormData): Promise
   const schoolYear = (formData.get('school_year') as string)?.trim() ?? ''
   const coverImageUrl = (formData.get('cover_image_url') as string) || null
   const schoolLogoUrl = (formData.get('school_logo_url') as string) || null
+  const templateId = (formData.get('template_id') as string) || defaultTemplate.id
 
   if (!parallel || !school) {
     return { error: 'Паралелката и училището са задължителни.', classId: null }
   }
 
   const name = `${parallel} — ${school}`
+  const chosenTemplate = templatePresets.find(t => t.id === templateId) ?? defaultTemplate
 
   const admin = createServiceRoleClient()
 
@@ -39,6 +42,8 @@ export async function createClass(prevState: State, formData: FormData): Promise
       cover_image_url: coverImageUrl,
       school_logo_url: schoolLogoUrl,
       status: 'draft',
+      template_id: chosenTemplate.id,
+      layout: chosenTemplate.blocks,
     })
     .select('id')
     .single()
