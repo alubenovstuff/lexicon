@@ -3,7 +3,11 @@
 import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server'
 import type { Block } from '@/lib/templates/types'
 
-export async function saveLayout(classId: string, blocks: Block[]): Promise<{ error: string | null }> {
+export async function saveLayout(
+  classId: string,
+  blocks: Block[],
+  templateId?: string,
+): Promise<{ error: string | null }> {
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Не сте влезли в системата.' }
@@ -20,9 +24,12 @@ export async function saveLayout(classId: string, blocks: Block[]): Promise<{ er
 
   if (!cls) return { error: 'Нямате достъп до този клас.' }
 
+  const update: Record<string, unknown> = { layout: blocks }
+  if (templateId !== undefined) update.template_id = templateId
+
   const { error } = await admin
     .from('classes')
-    .update({ layout: blocks })
+    .update(update)
     .eq('id', classId)
 
   return { error: error?.message ?? null }
