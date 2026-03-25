@@ -15,6 +15,7 @@ export async function createEvent(
     event_date: data.event_date || null,
     note: data.note || null,
     order_index: data.order_index,
+    photos: [],
   })
 
   if (error) {

@@ -287,11 +287,13 @@ export default function EventsEditor({
 }) {
   const [events, setEvents] = useState(initialEvents)
   const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const canAdd = events.length < MAX_EVENTS
 
   function handleAdd(form: { title: string; event_date: string; note: string }) {
+    setAddError(null)
     startTransition(async () => {
       const result = await createEvent(classId, {
         title: form.title,
@@ -299,7 +301,9 @@ export default function EventsEditor({
         note: form.note || null,
         order_index: events.length + 1,
       })
-      if (!result.error) {
+      if (result.error) {
+        setAddError(result.error)
+      } else {
         setAdding(false)
         setEvents((prev) => [
           ...prev,
@@ -363,10 +367,11 @@ export default function EventsEditor({
 
         {adding && (
           <div className="mb-4">
+            {addError && <p className="text-red-500 text-xs mb-2 px-1">{addError}</p>}
             <EventForm
               initial={{ title: '', event_date: '', note: '' }}
               onSave={handleAdd}
-              onCancel={() => setAdding(false)}
+              onCancel={() => { setAdding(false); setAddError(null) }}
               isPending={isPending}
             />
           </div>
