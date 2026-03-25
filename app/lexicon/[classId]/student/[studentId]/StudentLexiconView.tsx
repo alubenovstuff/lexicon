@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useRef } from 'react'
 import { LexiconBottomNav } from '../../LexiconNav'
+import HarryPortrait from '../../HarryPortrait'
 
 interface Question {
   id: string
@@ -215,28 +216,23 @@ export default function StudentLexiconView({
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-end mb-24">
 
           {/* Portrait */}
-          <div className="lg:col-span-5 relative group">
+          <div className="lg:col-span-5 relative">
             <div className="absolute -top-6 -left-6 w-32 h-32 bg-amber-100 rounded-full -z-10 opacity-40" />
+
+            {/* Frame — gilded portrait border */}
             <div
-              className="overflow-hidden rounded-2xl transform -rotate-1 group-hover:rotate-0 transition-transform duration-700"
-              style={{ boxShadow: '0 20px 50px -12px rgba(26,28,28,0.12)' }}
+              className="p-2 rounded-[1.25rem]"
+              style={{
+                background: 'linear-gradient(135deg, #c8a96e 0%, #f0d89a 30%, #a0722a 55%, #f0d89a 75%, #c8a96e 100%)',
+                boxShadow: '0 25px 60px -12px rgba(26,28,28,0.25), inset 0 1px 0 rgba(255,255,255,0.3)',
+              }}
             >
-              {student.photo_url ? (
-                <img
-                  src={student.photo_url}
-                  alt={`${student.first_name} ${student.last_name}`}
-                  className="w-full aspect-[3/4] object-cover"
-                />
-              ) : (
-                <div className="w-full aspect-[3/4] bg-indigo-100 flex items-center justify-center">
-                  <span
-                    className="text-indigo-300 font-bold"
-                    style={{ fontSize: 120, fontFamily: 'Noto Serif, serif' }}
-                  >
-                    {initials}
-                  </span>
-                </div>
-              )}
+              <HarryPortrait
+                src={student.photo_url}
+                alt={`${student.first_name} ${student.last_name}`}
+                initials={initials}
+                variant="portrait"
+              />
             </div>
 
             {/* Quote overlay card */}
