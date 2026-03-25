@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ type, token_hash })
     if (error) return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+    // Password reset — send directly to reset page
+    if (type === 'recovery') return NextResponse.redirect(`${origin}/reset-password`)
   } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (error) return NextResponse.redirect(`${origin}/login?error=auth_failed`)
