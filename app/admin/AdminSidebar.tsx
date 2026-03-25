@@ -38,7 +38,7 @@ export default function AdminSidebar() {
         {NAV_ITEMS.map((item) => {
           const isActive = item.href === '/admin'
             ? pathname === '/admin'
-            : pathname.startsWith(item.href)
+            : !!pathname?.startsWith(item.href)
           return (
             <Link
               key={item.key}

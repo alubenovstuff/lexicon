@@ -15,7 +15,7 @@ export function LexiconHeaderNav({ classId }: { classId: string }) {
     <nav className="flex gap-8 w-full pt-3 overflow-x-auto hide-scrollbar" style={{ borderTop: '1px solid color-mix(in srgb, var(--lex-text) 10%, transparent)' }}>
       {NAV_ITEMS.map(item => {
         const href = item.getHref(classId)
-        const active = item.exact ? pathname === href : pathname.startsWith(href)
+        const active = item.exact ? pathname === href : !!pathname?.startsWith(href)
         return (
           <Link
             key={item.label}
@@ -41,7 +41,7 @@ export function LexiconBottomNav({ classId }: { classId: string }) {
     <>
       {NAV_ITEMS.map(item => {
         const href = item.getHref(classId)
-        const active = item.exact ? pathname === href : pathname.startsWith(href)
+        const active = item.exact ? pathname === href : !!pathname?.startsWith(href)
         return (
           <Link
             key={item.label}
