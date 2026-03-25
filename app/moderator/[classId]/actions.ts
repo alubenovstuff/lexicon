@@ -325,6 +325,24 @@ export async function rejectMessage(
   return { error: null }
 }
 
+export async function updateStudentPhoto(
+  classId: string,
+  studentId: string,
+  photoUrl: string
+): Promise<{ error: string | null }> {
+  const supabase = createServiceRoleClient()
+  const { error } = await supabase
+    .from('students')
+    .update({ photo_url: photoUrl })
+    .eq('id', studentId)
+    .eq('class_id', classId)
+  if (error) return { error: 'Снимката не се запази.' }
+  revalidatePath(`/moderator/${classId}/students`)
+  revalidatePath(`/moderator/${classId}/students/${studentId}/edit`)
+  revalidatePath(`/my/${studentId}`)
+  return { error: null }
+}
+
 export async function updateStudent(
   classId: string,
   studentId: string,

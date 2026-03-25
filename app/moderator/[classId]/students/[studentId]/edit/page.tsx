@@ -19,7 +19,7 @@ export default async function EditStudentPage({ params }: Props) {
 
   const { data: student, error } = await supabase
     .from('students')
-    .select('id, first_name, last_name, parent_email')
+    .select('id, first_name, last_name, parent_email, photo_url')
     .eq('id', studentId)
     .eq('class_id', classId)
     .single()
@@ -56,7 +56,7 @@ export default async function EditStudentPage({ params }: Props) {
           </p>
         </div>
 
-        <EditStudentForm classId={classId} student={student} />
+        <EditStudentForm classId={classId} student={student} photoUrl={student.photo_url ?? null} />
       </main>
     </div>
   )

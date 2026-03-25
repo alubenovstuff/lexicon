@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateStudent } from '../../../actions'
+import { updateStudent, updateStudentPhoto } from '../../../actions'
 
 interface Props {
   classId: string
+  photoUrl: string | null
   student: {
     id: string
     first_name: string
@@ -14,98 +15,199 @@ interface Props {
   }
 }
 
-export default function EditStudentForm({ classId, student }: Props) {
+export default function EditStudentForm({ classId, student, photoUrl }: Props) {
   const router = useRouter()
   const [firstName, setFirstName] = useState(student.first_name)
-  const [lastName, setLastName] = useState(student.last_name)
+  const [lastName, setLastName]   = useState(student.last_name)
   const [parentEmail, setParentEmail] = useState(student.parent_email ?? '')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting]   = useState(false)
+  const [error, setError]             = useState<string | null>(null)
+
+  // Photo upload state
+  const [preview, setPreview]   = useState<string | null>(photoUrl)
+  const [uploading, setUploading] = useState(false)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const [photoSaved, setPhotoSaved] = useState(false)
+  const [, startTransition] = useTransition()
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setPhotoError(null)
+    setPhotoSaved(false)
+    setUploading(true)
+    setPreview(URL.createObjectURL(file))
+
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res  = await fetch('/api/media/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!data.url) { setPhotoError('Качването не успя.'); setPreview(photoUrl); return }
+
+      startTransition(async () => {
+        const result = await updateStudentPhoto(classId, student.id, data.url)
+        if (result.error) { setPhotoError(result.error); setPreview(photoUrl) }
+        else { setPreview(data.url); setPhotoSaved(true) }
+      })
+    } catch {
+      setPhotoError('Качването не успя.')
+      setPreview(photoUrl)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSubmitting(true)
     setError(null)
-
     const result = await updateStudent(classId, student.id, {
       first_name: firstName,
       last_name: lastName,
       parent_email: parentEmail,
     })
-
     setSubmitting(false)
-
-    if (result.error) {
-      setError(result.error)
-      return
-    }
-
+    if (result.error) { setError(result.error); return }
     router.push(`/moderator/${classId}/students`)
   }
 
+  const initials = `${student.first_name[0]}${student.last_name[0]}`.toUpperCase()
+
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-8 max-w-md shadow-sm">
-      <div className="flex flex-col gap-5">
+    <div className="max-w-md space-y-6">
 
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-            Име <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="text"
-            required
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          />
+      {/* ── Photo upload ─────────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+          Профилна снимка
+        </p>
+
+        <div className="flex items-center gap-5">
+          {/* Preview */}
+          <div className="relative flex-shrink-0">
+            {preview ? (
+              <img
+                src={preview}
+                alt={student.first_name}
+                className="w-24 h-24 rounded-2xl object-cover border-2 border-gray-100"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-2xl bg-indigo-50 flex items-center justify-center border-2 border-dashed border-indigo-200">
+                <span className="text-indigo-300 font-bold text-2xl" style={{ fontFamily: 'Noto Serif, serif' }}>
+                  {initials}
+                </span>
+              </div>
+            )}
+            {uploading && (
+              <div className="absolute inset-0 rounded-2xl bg-white/70 flex items-center justify-center">
+                <span className="material-symbols-outlined text-indigo-500 animate-spin text-2xl">progress_activity</span>
+              </div>
+            )}
+          </div>
+
+          {/* Controls */}
+          <div className="flex-1 min-w-0">
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+              className="inline-flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-base">upload</span>
+              {preview ? 'Смени снимката' : 'Качи снимка'}
+            </button>
+            <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+              Показва се в лексикона ако родителят не е качил собствена снимка.
+            </p>
+            {photoError && <p className="text-xs text-red-500 mt-1">{photoError}</p>}
+            {photoSaved && (
+              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">check_circle</span>
+                Снимката е запазена
+              </p>
+            )}
+          </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-            Фамилия <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="text"
-            required
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-            Имейл на родителя
-          </label>
-          <input
-            type="email"
-            value={parentEmail}
-            onChange={(e) => setParentEmail(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            placeholder="roditel@example.com"
-          />
-        </div>
-
-        {error && <p className="text-sm text-red-500">{error}</p>}
-
-        <div className="flex items-center gap-3 pt-1">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50"
-          >
-            {submitting ? 'Запазване...' : 'Запази промените'}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push(`/moderator/${classId}/students`)}
-            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            Отказ
-          </button>
-        </div>
-
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handlePhotoChange}
+        />
       </div>
-    </form>
+
+      {/* ── Text fields ──────────────────────────────────────────────── */}
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-5">
+          Данни на детето
+        </p>
+        <div className="flex flex-col gap-5">
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              Име <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              Фамилия <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              Имейл на родителя
+            </label>
+            <input
+              type="email"
+              value={parentEmail}
+              onChange={(e) => setParentEmail(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              placeholder="roditel@example.com"
+            />
+          </div>
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+            >
+              {submitting ? 'Запазване...' : 'Запази промените'}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push(`/moderator/${classId}/students`)}
+              className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Отказ
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
   )
 }
