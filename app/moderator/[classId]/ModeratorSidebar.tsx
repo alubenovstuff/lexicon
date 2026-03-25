@@ -12,6 +12,7 @@ type ActiveNav =
   | 'superhero'
   | 'finalize'
   | 'seed'
+  | 'preview'
   | null
 
 interface Props {
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { key: 'questions', icon: 'quiz', label: 'Въпросник', sub: '/questions' },
   { key: 'polls', icon: 'poll', label: 'Анкети', sub: '/polls' },
   { key: 'events', icon: 'photo_album', label: 'Спомени', sub: '/events' },
+  { key: 'preview', icon: 'visibility', label: 'Превю', sub: '/preview' },
 ] as const
 
 export default function ModeratorSidebar({ classId, namePart, schoolYear, logoUrl, active }: Props) {
