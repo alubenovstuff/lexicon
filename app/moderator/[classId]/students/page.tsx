@@ -40,7 +40,7 @@ export default async function StudentsPage({ params }: { params: Promise<{ class
   const { count: totalQuestions } = await supabase
     .from('questions')
     .select('id', { count: 'exact', head: true })
-    .or(`class_id.is.null,class_id.eq.${classId}`)
+    .eq('class_id', classId)
     .in('type', ['personal', 'superhero', 'better_together'])
 
   const total = totalQuestions ?? 0

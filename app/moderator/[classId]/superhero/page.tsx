@@ -1,20 +1,29 @@
 export const dynamic = 'force-dynamic'
 
 import { unstable_noStore as noStore } from 'next/cache'
-import { createServiceRoleClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server'
 import ModeratorSidebar from '../ModeratorSidebar'
 import SuperheroEditor from './SuperheroEditor'
 
 export default async function SuperheroPage({ params }: { params: Promise<{ classId: string }> }) {
   noStore()
   const { classId } = await params
+
+  const auth = createServerClient()
+  const { data: { user } } = await auth.getUser()
+  if (!user) redirect('/login')
+
   const supabase = createServiceRoleClient()
 
   const { data: classData } = await supabase
     .from('classes')
     .select('id, name, school_year, school_logo_url, superhero_prompt, superhero_image_url')
     .eq('id', classId)
+    .eq('moderator_id', user.id)
     .single()
+
+  if (!classData) redirect('/moderator')
 
   const { data: students } = await supabase
     .from('students')

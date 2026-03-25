@@ -25,7 +25,7 @@ export default async function WizardPage({
 
   if (!student || student.parent_user_id !== user.id) redirect('/login')
 
-  // Only personal questions go in the wizard
+  // Only personal questions go in the wizard (class-specific only — system questions are templates)
   const { data: questions } = await admin
     .from('questions')
     .select('id, text, max_length, order_index')

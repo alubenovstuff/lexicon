@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"moderator_id\" /Users/andreylyubenov/Desktop/ClaudeProjects/Lexicon/app/moderator/[classId]/superhero/page.tsx)",
+      "Bash(grep -n \"class_id\\\\|questions\" /Users/andreylyubenov/Desktop/ClaudeProjects/Lexicon/app/moderator/[classId]/preview/page.tsx)",
+      "Bash(grep -n questions /Users/andreylyubenov/Desktop/ClaudeProjects/Lexicon/app/lexicon/[classId]/student/[studentId]/page.tsx)",
+      "Bash(grep -n \"class_id\\\\|insert\\\\|global\\\\|null\" /Users/andreylyubenov/Desktop/ClaudeProjects/Lexicon/app/moderator/[classId]/questions/page.tsx)",
+      "Bash(head -20 ls /Users/andreylyubenov/Desktop/ClaudeProjects/Lexicon/app/moderator/[classId]/questions/)"
+    ]
+  }
+}
