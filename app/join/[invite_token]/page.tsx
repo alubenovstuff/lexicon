@@ -28,13 +28,27 @@ export default async function JoinPage({ params }: Props) {
     )
   }
 
+  const { data: classData } = await admin
+    .from('classes')
+    .select('id, name, school_year, school_logo_url, moderator_id')
+    .eq('id', student.class_id)
+    .single()
+
+  // Try to get moderator's display name from auth metadata
+  let moderatorName = 'Вашата учителка'
+  if (classData?.moderator_id) {
+    const { data: { user: mod } } = await admin.auth.admin.getUserById(classData.moderator_id)
+    const name = mod?.user_metadata?.full_name || mod?.user_metadata?.name
+    if (name) moderatorName = name
+  }
+
   // If already logged in → go straight to wizard
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (user) redirect(`/my/${student.id}/wizard`)
 
   return (
-    <JoinShell student={student}>
+    <JoinShell student={student} classData={classData} moderatorName={moderatorName}>
       <JoinEmailForm
         inviteToken={invite_token}
         parentEmail={student.parent_email ?? ''}
@@ -46,18 +60,53 @@ export default async function JoinPage({ params }: Props) {
 
 function JoinShell({
   student,
+  classData,
+  moderatorName,
   children,
 }: {
   student: { first_name: string; last_name: string; photo_url: string | null }
+  classData: { name: string; school_year: string; school_logo_url: string | null } | null
+  moderatorName: string
   children: React.ReactNode
 }) {
   const initials = `${student.first_name[0]}${student.last_name[0]}`.toUpperCase()
+
+  const [classPart, schoolPart] = classData?.name?.includes(' — ')
+    ? classData.name.split(' — ')
+    : [classData?.name ?? '', '']
+
   return (
     <div className="min-h-screen bg-[#faf9f8] flex flex-col items-center justify-center px-6 py-16" style={{ fontFamily: 'Manrope, sans-serif' }}>
       <p className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-8">Един неразделен клас</p>
 
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 mb-4">
+
+          {/* Invitation header */}
+          {classData && (
+            <div className="text-center mb-6 pb-6 border-b border-gray-100">
+              {classData.school_logo_url && (
+                <img
+                  src={classData.school_logo_url}
+                  alt={schoolPart}
+                  className="w-12 h-12 rounded-full object-contain mx-auto mb-3 border border-gray-100 bg-white p-1"
+                />
+              )}
+              <p className="text-sm text-gray-500 leading-relaxed">
+                <span className="font-semibold text-gray-800">{moderatorName}</span> ви кани да попълните
+                годишния лексикон на{' '}
+                <span className="font-semibold text-indigo-700">{classPart}</span>
+                {schoolPart && (
+                  <>, <span className="font-semibold text-gray-700">{schoolPart}</span></>
+                )}
+              </p>
+              {classData.school_year && (
+                <p className="text-xs text-gray-400 mt-1">{classData.school_year}</p>
+              )}
+            </div>
+          )}
+
+          {/* Student */}
           <div className="flex flex-col items-center mb-6">
             {student.photo_url ? (
               <img
@@ -77,6 +126,7 @@ function JoinShell({
               {student.first_name} {student.last_name}
             </h1>
           </div>
+
           {children}
         </div>
 
