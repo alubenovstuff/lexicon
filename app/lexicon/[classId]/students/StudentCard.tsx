@@ -6,13 +6,15 @@ import HarryPortrait from '../HarryPortrait'
 interface Props {
   student: { id: string; first_name: string; last_name: string; photo_url: string | null }
   classId: string
+  basePath?: string
 }
 
-export default function StudentCard({ student, classId }: Props) {
+export default function StudentCard({ student, classId, basePath }: Props) {
   const initials = `${student.first_name[0]}${student.last_name[0]}`.toUpperCase()
+  const base = basePath ?? `/lexicon/${classId}`
 
   return (
-    <Link href={`/lexicon/${classId}/student/${student.id}`} className="group">
+    <Link href={`${base}/student/${student.id}`} className="group">
       <div className="bg-white p-5 rounded-[2.5rem] text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
         {/* Golden ring frame */}
         <div

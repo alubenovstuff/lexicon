@@ -1,23 +1,27 @@
 export const dynamic = 'force-dynamic'
 
 import { unstable_noStore as noStore } from 'next/cache'
-import { notFound } from 'next/navigation'
-import { createServiceRoleClient } from '@/lib/supabase/server'
-import LexiconShell from '../LexiconShell'
-import StudentCard from './StudentCard'
+import { redirect } from 'next/navigation'
+import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server'
+import LexiconShell from '@/app/lexicon/[classId]/LexiconShell'
+import StudentCard from '@/app/lexicon/[classId]/students/StudentCard'
 
-export default async function LexiconStudentsPage({ params }: { params: Promise<{ classId: string }> }) {
+export default async function PreviewStudentsPage({ params }: { params: Promise<{ classId: string }> }) {
   noStore()
   const { classId } = await params
-  const admin = createServiceRoleClient()
+  const supabase = createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
+  const admin = createServiceRoleClient()
   const { data: classData } = await admin
     .from('classes')
-    .select('id, name, status, school_logo_url')
+    .select('id, name, school_logo_url, template_id')
     .eq('id', classId)
+    .eq('moderator_id', user.id)
     .single()
 
-  if (!classData || classData.status !== 'published') notFound()
+  if (!classData) redirect('/moderator')
 
   const { data: students } = await admin
     .from('students')
@@ -26,9 +30,10 @@ export default async function LexiconStudentsPage({ params }: { params: Promise<
     .order('last_name')
 
   const studentList = students ?? []
+  const basePath = `/moderator/${classId}/preview`
 
   return (
-    <LexiconShell classId={classId} logoUrl={classData.school_logo_url}>
+    <LexiconShell classId={classId} logoUrl={classData.school_logo_url} themeId={classData.template_id} basePath={basePath}>
       <section className="mb-16">
         <div className="flex items-center justify-between mb-8">
           <h3 className="text-2xl text-[#3632b7]" style={{ fontFamily: 'Noto Serif, serif' }}>
@@ -46,7 +51,7 @@ export default async function LexiconStudentsPage({ params }: { params: Promise<
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {studentList.map(student => (
-              <StudentCard key={student.id} student={student} classId={classId} basePath={`/lexicon/${classId}`} />
+              <StudentCard key={student.id} student={student} classId={classId} basePath={basePath} />
             ))}
           </div>
         )}

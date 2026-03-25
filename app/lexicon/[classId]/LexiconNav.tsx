@@ -4,17 +4,18 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const NAV_ITEMS = [
-  { label: 'Класът',         icon: 'auto_stories',  exact: true,  getHref: (id: string) => `/lexicon/${id}`          },
-  { label: 'Учениците',      icon: 'people',        exact: false, getHref: (id: string) => `/lexicon/${id}/students` },
-  { label: 'Нашите спомени', icon: 'photo_album',   exact: false, getHref: (id: string) => `/lexicon/${id}/memories` },
+  { label: 'Класът',         icon: 'auto_stories',  exact: true,  path: ''           },
+  { label: 'Учениците',      icon: 'people',        exact: false, path: '/students'  },
+  { label: 'Нашите спомени', icon: 'photo_album',   exact: false, path: '/memories'  },
 ]
 
-export function LexiconHeaderNav({ classId }: { classId: string }) {
+export function LexiconHeaderNav({ classId, basePath }: { classId: string; basePath?: string }) {
   const pathname = usePathname()
+  const base = basePath ?? `/lexicon/${classId}`
   return (
     <nav className="flex gap-8 w-full pt-3 overflow-x-auto hide-scrollbar" style={{ borderTop: '1px solid color-mix(in srgb, var(--lex-text) 10%, transparent)' }}>
       {NAV_ITEMS.map(item => {
-        const href = item.getHref(classId)
+        const href = `${base}${item.path}`
         const active = item.exact ? pathname === href : !!pathname?.startsWith(href)
         return (
           <Link
@@ -35,12 +36,13 @@ export function LexiconHeaderNav({ classId }: { classId: string }) {
   )
 }
 
-export function LexiconBottomNav({ classId }: { classId: string }) {
+export function LexiconBottomNav({ classId, basePath }: { classId: string; basePath?: string }) {
   const pathname = usePathname()
+  const base = basePath ?? `/lexicon/${classId}`
   return (
     <>
       {NAV_ITEMS.map(item => {
-        const href = item.getHref(classId)
+        const href = `${base}${item.path}`
         const active = item.exact ? pathname === href : !!pathname?.startsWith(href)
         return (
           <Link

@@ -45,6 +45,8 @@ interface Props {
   nextHref?: string | null
   /** Override the back link */
   backHref?: string
+  /** Base path for bottom nav (e.g. /moderator/[id]/preview) */
+  basePath?: string
   /** Whether premium features (video) are visible */
   isPremium?: boolean
 }
@@ -134,6 +136,7 @@ export default function StudentLexiconView({
   prevHref,
   nextHref,
   backHref,
+  basePath,
   isPremium = false,
 }: Props) {
   const resolvedPrevHref = prevHref !== undefined ? prevHref : (prevStudentId ? `/lexicon/${classId}/student/${prevStudentId}` : null)
@@ -524,7 +527,7 @@ export default function StudentLexiconView({
 
       {/* ── Fixed bottom navigation ──────────────────────────────────── */}
       <footer className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-8 pb-8 pt-4 bg-[#faf9f8]/80 backdrop-blur-xl shadow-[0_-4px_40px_rgba(26,28,28,0.06)] rounded-t-[2rem]">
-        <LexiconBottomNav classId={classId} />
+        <LexiconBottomNav classId={classId} basePath={basePath} />
       </footer>
 
     </div>

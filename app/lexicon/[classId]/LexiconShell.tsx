@@ -6,10 +6,11 @@ interface Props {
   classId: string
   logoUrl?: string | null
   themeId?: string | null
+  basePath?: string
   children: React.ReactNode
 }
 
-export default function LexiconShell({ classId, logoUrl, themeId, children }: Props) {
+export default function LexiconShell({ classId, logoUrl, themeId, basePath, children }: Props) {
   const theme = (themeId && themes[themeId]) ? themes[themeId] : defaultTheme
 
   return (
@@ -47,7 +48,7 @@ export default function LexiconShell({ classId, logoUrl, themeId, children }: Pr
             </h1>
           </div>
         </div>
-        <LexiconHeaderNav classId={classId} />
+        <LexiconHeaderNav classId={classId} basePath={basePath} />
       </header>
 
       {/* ── Page content ─────────────────────────────────────────────── */}
@@ -67,7 +68,7 @@ export default function LexiconShell({ classId, logoUrl, themeId, children }: Pr
           boxShadow: '0 -4px 40px rgba(26,28,28,0.06)',
         }}
       >
-        <LexiconBottomNav classId={classId} />
+        <LexiconBottomNav classId={classId} basePath={basePath} />
       </footer>
     </div>
   )
