@@ -3,6 +3,7 @@
 import { useState, useRef, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateStudent, updateStudentPhoto } from '../../../actions'
+import PhotoCropModal from '@/app/components/PhotoCropModal'
 
 interface Props {
   classId: string
@@ -24,29 +25,35 @@ export default function EditStudentForm({ classId, student, photoUrl }: Props) {
   const [error, setError]             = useState<string | null>(null)
 
   // Photo upload state
-  const [preview, setPreview]   = useState<string | null>(photoUrl)
+  const [preview, setPreview]     = useState<string | null>(photoUrl)
+  const [cropSrc, setCropSrc]     = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [photoSaved, setPhotoSaved] = useState(false)
   const [, startTransition] = useTransition()
   const inputRef = useRef<HTMLInputElement>(null)
 
-  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
     setPhotoError(null)
     setPhotoSaved(false)
-    setUploading(true)
-    setPreview(URL.createObjectURL(file))
+    const reader = new FileReader()
+    reader.onload = () => setCropSrc(reader.result as string)
+    reader.readAsDataURL(file)
+  }
 
+  async function handleCropConfirm(blob: Blob) {
+    setCropSrc(null)
+    setUploading(true)
+    setPreview(URL.createObjectURL(blob))
     try {
       const fd = new FormData()
-      fd.append('file', file)
+      fd.append('file', new File([blob], 'photo.jpg', { type: 'image/jpeg' }))
       const res  = await fetch('/api/media/upload', { method: 'POST', body: fd })
       const data = await res.json()
       if (!data.url) { setPhotoError('Качването не успя.'); setPreview(photoUrl); return }
-
       startTransition(async () => {
         const result = await updateStudentPhoto(classId, student.id, data.url)
         if (result.error) { setPhotoError(result.error); setPreview(photoUrl) }
@@ -78,6 +85,13 @@ export default function EditStudentForm({ classId, student, photoUrl }: Props) {
 
   return (
     <div className="max-w-md space-y-6">
+      {cropSrc && (
+        <PhotoCropModal
+          imageSrc={cropSrc}
+          onConfirm={handleCropConfirm}
+          onCancel={() => setCropSrc(null)}
+        />
+      )}
 
       {/* ── Photo upload ─────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
