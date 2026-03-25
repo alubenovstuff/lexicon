@@ -72,6 +72,61 @@ export async function setShowcaseOrder(
   return { error: null }
 }
 
+// ── Delete class ─────────────────────────────────────────────────────────────
+
+export async function adminDeleteClass(classId: string): Promise<{ error: string | null }> {
+  await assertAdmin()
+  const admin = createServiceRoleClient()
+
+  // Delete in dependency order (cascade may not be set up)
+  const { data: students } = await admin.from('students').select('id').eq('class_id', classId)
+  const studentIds = (students ?? []).map(s => s.id)
+
+  if (studentIds.length > 0) {
+    await admin.from('answers').delete().in('student_id', studentIds)
+    await admin.from('peer_messages').delete().in('author_student_id', studentIds)
+    await admin.from('peer_messages').delete().in('recipient_student_id', studentIds)
+    await admin.from('students').delete().in('id', studentIds)
+  }
+
+  await admin.from('questions').delete().eq('class_id', classId)
+  await admin.from('events').delete().eq('class_id', classId)
+  await admin.from('class_voice_answers').delete().eq('class_id', classId)
+
+  const { data: polls } = await admin.from('class_polls').select('id').eq('class_id', classId)
+  const pollIds = (polls ?? []).map(p => p.id)
+  if (pollIds.length > 0) await admin.from('class_poll_votes').delete().in('poll_id', pollIds)
+  await admin.from('class_polls').delete().eq('class_id', classId)
+
+  const { error } = await admin.from('classes').delete().eq('id', classId)
+  if (error) return { error: 'Грешка при изтриване на класа.' }
+
+  revalidatePath('/admin/classes')
+  revalidatePath('/admin/moderators')
+  return { error: null }
+}
+
+// ── Delete moderator ──────────────────────────────────────────────────────────
+
+export async function adminDeleteModerator(userId: string): Promise<{ error: string | null }> {
+  await assertAdmin()
+  const admin = createServiceRoleClient()
+
+  // Delete all classes owned by this user
+  const { data: classes } = await admin.from('classes').select('id').eq('moderator_id', userId)
+  for (const cls of classes ?? []) {
+    const result = await adminDeleteClass(cls.id)
+    if (result.error) return result
+  }
+
+  // Delete the auth user
+  const { error } = await admin.auth.admin.deleteUser(userId)
+  if (error) return { error: 'Грешка при изтриване на потребителя.' }
+
+  revalidatePath('/admin/moderators')
+  return { error: null }
+}
+
 // ── System questions ──────────────────────────────────────────────────────────
 
 export async function updateSystemQuestion(

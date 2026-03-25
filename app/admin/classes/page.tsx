@@ -5,6 +5,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import ShowcaseToggle from './ShowcaseToggle'
 import PublishToggle from './PublishToggle'
+import DeleteClassButton from './DeleteClassButton'
 
 const STATUS_STYLE: Record<string, { label: string; color: string }> = {
   draft:             { label: 'Чернова',    color: 'bg-gray-100 text-gray-500' },
@@ -142,14 +143,20 @@ export default async function AdminClassesPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <Link href={`/admin/classes/${cls.id}/preview`}
+                        className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-600 font-semibold">
+                        <span className="material-symbols-outlined" style={{ fontSize: 13 }}>preview</span>
+                        Превю
+                      </Link>
                       {cls.status === 'published' && (
                         <Link href={`/lexicon/${cls.id}`} target="_blank"
                           className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-600 font-semibold">
                           <span className="material-symbols-outlined" style={{ fontSize: 13 }}>open_in_new</span>
-                          Лексикон
+                          Публ.
                         </Link>
                       )}
                       <PublishToggle classId={cls.id} isPublished={cls.status === 'published'} />
+                      <DeleteClassButton classId={cls.id} className={cls.name} />
                     </div>
                   </td>
                 </tr>
