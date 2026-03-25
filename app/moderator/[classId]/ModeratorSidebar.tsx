@@ -28,7 +28,7 @@ const NAV_ITEMS = [
   { key: 'messages', icon: 'forum', label: 'Послания', sub: '/messages' },
   { key: 'questions', icon: 'quiz', label: 'Въпросник', sub: '/questions' },
   { key: 'polls', icon: 'poll', label: 'Анкети', sub: '/polls' },
-  { key: 'events', icon: 'calendar_month', label: 'Събития', sub: '/events' },
+  { key: 'events', icon: 'photo_album', label: 'Спомени', sub: '/events' },
 ] as const
 
 export default function ModeratorSidebar({ classId, namePart, schoolYear, logoUrl, active }: Props) {

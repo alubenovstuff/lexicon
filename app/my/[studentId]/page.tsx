@@ -84,6 +84,30 @@ export default async function MyChildPage({ params }: Props) {
     existingVotes[v.poll_id] = v.nominee_student_id
   }
 
+  // Events (memories) for this class
+  const { data: eventsData } = await admin
+    .from('events')
+    .select('id, title, event_date, photos')
+    .eq('class_id', student.class_id)
+    .order('order_index')
+
+  // This student's existing event comments
+  const { data: myComments } = await admin
+    .from('event_comments')
+    .select('id, event_id, comment_text, created_at')
+    .eq('student_id', studentId)
+
+  const commentByEvent: Record<string, { id: string; comment_text: string; created_at: string }> = {}
+  for (const c of myComments ?? []) {
+    commentByEvent[c.event_id] = c
+  }
+
+  const events = (eventsData ?? []).map(e => ({
+    ...e,
+    photos: (e.photos as string[]) ?? [],
+    myComment: commentByEvent[e.id] ?? null,
+  }))
+
   return (
     <StudentProfileParent
       student={student}
@@ -97,6 +121,7 @@ export default async function MyChildPage({ params }: Props) {
       sentMessages={sentMessages ?? []}
       polls={polls ?? []}
       existingVotes={existingVotes}
+      events={events}
     />
   )
 }

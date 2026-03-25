@@ -46,10 +46,10 @@ export default async function EventsPage({ params }: { params: Promise<{ classId
             className="text-4xl font-bold text-gray-900 leading-tight"
             style={{ fontFamily: 'Noto Serif, serif' }}
           >
-            Събития през годината
+            Нашите спомени
           </h1>
           <p className="text-sm text-gray-500 mt-2">
-            Добавете до 10 специални момента от учебната година.
+            Добавете до 10 специални момента от учебната година. Учениците могат да оставят коментар към всяка снимка.
           </p>
         </div>
 

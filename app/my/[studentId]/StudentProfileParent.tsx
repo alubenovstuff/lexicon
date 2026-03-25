@@ -6,6 +6,7 @@ import MessagesSection from './MessagesSection'
 import PhotoUpload from './PhotoUpload'
 import ClassVoiceSection from './ClassVoiceSection'
 import PollsSection from './PollsSection'
+import MemoriesSection from './memories/MemoriesSection'
 
 interface Question {
   id: string
@@ -33,6 +34,13 @@ interface Props {
   sentMessages: Array<{ recipient_student_id: string; status: string; content: string }>
   polls: Array<{ id: string; question: string; order_index: number }>
   existingVotes: Record<string, string>
+  events: Array<{
+    id: string
+    title: string
+    event_date: string | null
+    photos: string[]
+    myComment: { id: string; comment_text: string; created_at: string } | null
+  }>
 }
 
 // ── Status helpers ────────────────────────────────────────────────────────────
@@ -166,6 +174,7 @@ export default function StudentProfileParent({
   sentMessages,
   polls,
   existingVotes,
+  events,
 }: Props) {
   const answerMap = new Map(answers.map((a) => [a.question_id, a.status]))
 
@@ -223,6 +232,7 @@ export default function StudentProfileParent({
   const SECTION_IDS = [
     ...TRACKED_SECTION_IDS,
     ...(classVoiceQuestions.length > 0 ? ['voice'] : []),
+    ...(events.length > 0 ? ['memories'] : []),
   ]
 
   const sectionStatusMap: Record<string, SectionStatus> = {
@@ -510,6 +520,27 @@ export default function StudentProfileParent({
                 />
               ))}
             </div>
+          </Section>
+        )}
+
+        {/* ── Нашите спомени ─────────────────────────────────────────────── */}
+        {events.length > 0 && (
+          <Section
+            id="memories"
+            icon="photo_album"
+            title="Нашите спомени"
+            description="Учителят е добавил снимки от специални моменти на класа. Оставете кратък коментар към всяка снимка — той ще се покаже в лексикона."
+            status={events.every(e => e.myComment) ? 'done' : events.some(e => e.myComment) ? 'partial' : 'todo'}
+            statusLabel={
+              events.every(e => e.myComment) ? 'Всички коментирани' :
+              events.some(e => e.myComment) ? `${events.filter(e => e.myComment).length} / ${events.length} коментара` :
+              'Без коментар'
+            }
+            open={openSection === 'memories'}
+            onToggle={() => toggle('memories')}
+            accentColor="teal"
+          >
+            <MemoriesSection studentId={student.id} events={events} />
           </Section>
         )}
 

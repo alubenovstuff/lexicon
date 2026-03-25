@@ -26,6 +26,31 @@ export default async function LexiconMemoriesPage({ params }: { params: Promise<
 
   const eventList = events ?? []
 
+  // Fetch all comments for these events, joined with student name
+  const eventIds = eventList.map(e => e.id)
+  const { data: comments } = eventIds.length > 0
+    ? await admin
+        .from('event_comments')
+        .select('id, event_id, comment_text, created_at, student_id, students(first_name, last_name, photo_url)')
+        .in('event_id', eventIds)
+        .order('created_at')
+    : { data: [] }
+
+  // Group comments by event_id
+  type Comment = {
+    id: string
+    comment_text: string
+    created_at: string
+    student_id: string
+    students: { first_name: string; last_name: string; photo_url: string | null } | null
+  }
+  const commentsByEvent: Record<string, Comment[]> = {}
+  for (const c of comments ?? []) {
+    const ev = c as Comment & { event_id: string }
+    if (!commentsByEvent[ev.event_id]) commentsByEvent[ev.event_id] = []
+    commentsByEvent[ev.event_id].push(ev)
+  }
+
   return (
     <LexiconShell classId={classId} logoUrl={classData.school_logo_url}>
       <section className="mb-16">
@@ -43,6 +68,7 @@ export default async function LexiconMemoriesPage({ params }: { params: Promise<
             {eventList.map((event, i) => {
               const rotation = ['rotate-1', '-rotate-2', 'rotate-3', '-rotate-1'][i % 4]
               const hasPhoto = event.photos && event.photos.length > 0
+              const eventComments = commentsByEvent[event.id] ?? []
 
               if (hasPhoto) {
                 return (
@@ -56,6 +82,33 @@ export default async function LexiconMemoriesPage({ params }: { params: Promise<
                         <p className="text-xs text-stone-400 mt-1">
                           {new Date(event.event_date).toLocaleDateString('bg-BG', { year: 'numeric', month: 'long', day: 'numeric' })}
                         </p>
+                      )}
+                      {eventComments.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-gray-100 space-y-3">
+                          {eventComments.map(c => (
+                            <div key={c.id} className="flex items-start gap-2.5">
+                              {c.students?.photo_url ? (
+                                <img
+                                  src={c.students.photo_url}
+                                  alt=""
+                                  className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5 border border-gray-100"
+                                />
+                              ) : (
+                                <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-indigo-600">
+                                  {c.students?.first_name?.[0] ?? '?'}
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-xs font-semibold text-gray-600">
+                                  {c.students?.first_name} {c.students?.last_name}
+                                </p>
+                                <p className="text-xs text-gray-500 leading-snug mt-0.5" style={{ fontFamily: 'Noto Serif, serif' }}>
+                                  {c.comment_text}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -78,6 +131,29 @@ export default async function LexiconMemoriesPage({ params }: { params: Promise<
                           {new Date(event.event_date).toLocaleDateString('bg-BG', { year: 'numeric', month: 'long', day: 'numeric' })}
                         </p>
                       )}
+                      {eventComments.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-[#3632b7]/20 space-y-3">
+                          {eventComments.map(c => (
+                            <div key={c.id} className="flex items-start gap-2.5">
+                              {c.students?.photo_url ? (
+                                <img src={c.students.photo_url} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5" />
+                              ) : (
+                                <div className="w-6 h-6 rounded-full bg-[#3632b7]/20 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-[#3632b7]">
+                                  {c.students?.first_name?.[0] ?? '?'}
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-xs font-semibold text-[#3632b7]/80">
+                                  {c.students?.first_name} {c.students?.last_name}
+                                </p>
+                                <p className="text-xs text-[#3632b7]/70 leading-snug mt-0.5" style={{ fontFamily: 'Noto Serif, serif' }}>
+                                  {c.comment_text}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
@@ -94,6 +170,29 @@ export default async function LexiconMemoriesPage({ params }: { params: Promise<
                       <p className="text-[#855300] text-sm mt-2">
                         {new Date(event.event_date).toLocaleDateString('bg-BG', { year: 'numeric', month: 'long', day: 'numeric' })}
                       </p>
+                    )}
+                    {eventComments.length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-[#855300]/20 space-y-3">
+                        {eventComments.map(c => (
+                          <div key={c.id} className="flex items-start gap-2.5">
+                            {c.students?.photo_url ? (
+                              <img src={c.students.photo_url} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5" />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-[#855300]/20 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-[#855300]">
+                                {c.students?.first_name?.[0] ?? '?'}
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-xs font-semibold text-[#2a1700]/70">
+                                {c.students?.first_name} {c.students?.last_name}
+                              </p>
+                              <p className="text-xs text-[#2a1700]/60 leading-snug mt-0.5" style={{ fontFamily: 'Noto Serif, serif' }}>
+                                {c.comment_text}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
