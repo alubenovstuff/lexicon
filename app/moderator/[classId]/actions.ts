@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServiceRoleClient } from '@/lib/supabase/server'
-import { sendParentInviteEmail, sendLexiconPublishedEmail } from '@/lib/resend'
+import { sendParentInviteEmail, sendLexiconPublishedEmail, sendReminderEmail } from '@/lib/resend'
 
 export async function updateClassInfo(
   classId: string,
@@ -366,6 +366,108 @@ export async function updateStudent(
 
   revalidatePath(`/moderator/${classId}/students`)
   return { error: null }
+}
+
+export async function setDeadline(
+  classId: string,
+  deadline: string | null
+): Promise<{ error: string | null }> {
+  const supabase = createServiceRoleClient()
+  const { error } = await supabase
+    .from('classes')
+    .update({ deadline: deadline ?? null })
+    .eq('id', classId)
+  if (error) return { error: 'Неуспешно запазване на крайния срок.' }
+  revalidatePath(`/moderator/${classId}`)
+  revalidatePath(`/moderator/${classId}/students`)
+  return { error: null }
+}
+
+export async function sendReminderToParent(studentId: string): Promise<{ error: string | null }> {
+  const supabase = createServiceRoleClient()
+
+  const { data: student } = await supabase
+    .from('students')
+    .select('id, first_name, last_name, parent_email, class_id')
+    .eq('id', studentId)
+    .single()
+
+  if (!student?.parent_email) return { error: 'Няма имейл на родителя.' }
+
+  const { data: classData } = await supabase
+    .from('classes')
+    .select('deadline')
+    .eq('id', student.class_id)
+    .single()
+
+  const daysLeft = classData?.deadline
+    ? Math.max(1, Math.ceil((new Date(classData.deadline).getTime() - Date.now()) / 86_400_000))
+    : 7
+
+  try {
+    await sendReminderEmail(
+      student.parent_email,
+      `${student.first_name} ${student.last_name}`,
+      student.id,
+      daysLeft
+    )
+  } catch {
+    return { error: 'Грешка при изпращане. Опитайте отново.' }
+  }
+
+  return { error: null }
+}
+
+export async function sendBulkReminders(classId: string): Promise<{ error: string | null; sent: number }> {
+  const supabase = createServiceRoleClient()
+
+  const { data: classRow } = await supabase
+    .from('classes')
+    .select('deadline')
+    .eq('id', classId)
+    .single()
+
+  const daysLeft = classRow?.deadline
+    ? Math.max(1, Math.ceil((new Date(classRow.deadline).getTime() - Date.now()) / 86_400_000))
+    : 7
+
+  const { data: students } = await supabase
+    .from('students')
+    .select('id, first_name, last_name, parent_email, invite_accepted_at')
+    .eq('class_id', classId)
+    .not('parent_email', 'is', null)
+    .not('invite_accepted_at', 'is', null)
+
+  if (!students?.length) return { error: null, sent: 0 }
+
+  const studentIds = students.map((s) => s.id)
+  const { data: answers } = await supabase
+    .from('answers')
+    .select('student_id')
+    .in('student_id', studentIds)
+    .in('status', ['submitted', 'approved'])
+
+  const submittedSet = new Set((answers ?? []).map((a) => a.student_id))
+
+  let sent = 0
+  for (const student of students) {
+    if (!student.parent_email) continue
+    if (submittedSet.has(student.id)) continue
+
+    try {
+      await sendReminderEmail(
+        student.parent_email,
+        `${student.first_name} ${student.last_name}`,
+        student.id,
+        daysLeft
+      )
+      sent++
+    } catch {
+      // Continue on failure
+    }
+  }
+
+  return { error: null, sent }
 }
 
 export async function resendInvite(studentId: string): Promise<{ error: string | null }> {

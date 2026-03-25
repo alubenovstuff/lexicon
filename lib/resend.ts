@@ -43,12 +43,41 @@ export async function sendAnswerRejectedEmail(
   })
 }
 
+export async function sendReminderEmail(
+  to: string,
+  studentName: string,
+  studentId: string,
+  daysLeft: number
+) {
+  const wizardUrl = `${BASE_URL}/my/${studentId}/wizard`
+  const urgency = daysLeft <= 2
+
+  await resend.emails.send({
+    from: FROM,
+    to: [to],
+    subject: urgency
+      ? `⏰ Само ${daysLeft} ${daysLeft === 1 ? 'ден' : 'дни'} остават — попълнете профила на ${studentName}`
+      : `Напомняне: ${daysLeft} дни до края — профилът на ${studentName}`,
+    html: `
+      <p>Здравейте,</p>
+      <p>${urgency ? '<strong>Бързайте!</strong> О' : 'О'}стават само <strong>${daysLeft} ${daysLeft === 1 ? 'ден' : 'дни'}</strong> до крайния срок за попълване на <em>Един неразделен клас</em>.</p>
+      <p>Профилът на <strong>${studentName}</strong> все още не е напълно попълнен.</p>
+      <p>
+        <a href="${wizardUrl}" style="background:${urgency ? '#dc2626' : '#4f46e5'};color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:bold;">
+          Попълни сега →
+        </a>
+      </p>
+      <p style="color:#9ca3af;font-size:12px;">Отнема само няколко минути.</p>
+    `,
+  })
+}
+
 export async function sendLexiconPublishedEmail(
   recipients: Array<{ email: string; studentName: string }>,
   classId: string,
   className: string
 ) {
-  const classUrl = `${BASE_URL}/class/${classId}`
+  const classUrl = `${BASE_URL}/lexicon/${classId}`
 
   for (const r of recipients) {
     try {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
-import { updateClassInfo } from './actions'
+import { updateClassInfo, setDeadline } from './actions'
 
 interface Contribution {
   id: string
@@ -17,6 +17,7 @@ interface Contribution {
 
 interface Props {
   classData: { id: string; name: string; school_year: string; status: string; school_logo_url: string | null }
+  deadline: string | null
   students: Array<{ id: string; first_name: string; last_name: string; invite_accepted_at: string | null }>
   pendingAnswers: number
   pendingMessages: number
@@ -24,6 +25,16 @@ interface Props {
   hasQuestionnaire: boolean
   events: Array<{ id: string; title: string; event_date: string | null }>
   recentContributions: Contribution[]
+}
+
+function deadlineInfo(deadline: string | null): { label: string; color: string } | null {
+  if (!deadline) return null
+  const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86_400_000)
+  if (days < 0) return { label: 'Срокът изтече', color: 'bg-red-100 text-red-700' }
+  if (days === 0) return { label: 'Днес е крайният срок!', color: 'bg-red-100 text-red-700' }
+  if (days <= 7) return { label: `${days} дни до края`, color: 'bg-red-100 text-red-700' }
+  if (days <= 14) return { label: `${days} дни до края`, color: 'bg-amber-100 text-amber-700' }
+  return { label: `${days} дни до края`, color: 'bg-gray-100 text-gray-600' }
 }
 
 function timeAgo(dateStr: string) {
@@ -41,7 +52,7 @@ function Icon({ name, className = '' }: { name: string; className?: string }) {
 }
 
 export default function Dashboard({
-  classData, students, pendingAnswers, pendingMessages,
+  classData, deadline, students, pendingAnswers, pendingMessages,
   approvedAnswers, hasQuestionnaire, events, recentContributions,
 }: Props) {
   const totalStudents = students.length
@@ -61,6 +72,9 @@ export default function Dashboard({
   const [schoolYear, setSchoolYear] = useState(classData.school_year)
   const [logoUrl, setLogoUrl] = useState<string | null>(classData.school_logo_url)
   const [logoUploading, setLogoUploading] = useState(false)
+  const [deadlineStr, setDeadlineStr] = useState<string>(
+    deadline ? new Date(deadline).toISOString().split('T')[0] : ''
+  )
   const [saveError, setSaveError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -86,12 +100,16 @@ export default function Dashboard({
     }
     setSaveError(null)
     startTransition(async () => {
-      const result = await updateClassInfo(classData.id, {
-        name: `${className.trim()} — ${school.trim()}`,
-        school_year: schoolYear.trim(),
-        school_logo_url: logoUrl ?? undefined,
-      })
-      if (result.error) setSaveError(result.error)
+      const [infoResult, deadlineResult] = await Promise.all([
+        updateClassInfo(classData.id, {
+          name: `${className.trim()} — ${school.trim()}`,
+          school_year: schoolYear.trim(),
+          school_logo_url: logoUrl ?? undefined,
+        }),
+        setDeadline(classData.id, deadlineStr ? new Date(deadlineStr).toISOString() : null),
+      ])
+      const err = infoResult.error || deadlineResult.error
+      if (err) setSaveError(err)
       else setEditingSettings(false)
     })
   }
@@ -194,6 +212,23 @@ export default function Dashboard({
               <Icon name="calendar_today" className="text-amber-600 text-base" />
               <span className="text-sm font-semibold text-gray-700">{classData.school_year}</span>
             </div>
+            {(() => {
+              const info = deadlineInfo(deadline)
+              return info ? (
+                <div className={`px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold ${info.color}`}>
+                  <Icon name="timer" className="text-base" />
+                  {info.label}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setEditingSettings(true)}
+                  className="px-4 py-2 rounded-lg flex items-center gap-2 border border-dashed border-gray-300 text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors text-sm"
+                >
+                  <Icon name="timer" className="text-base" />
+                  Добави краен срок
+                </button>
+              )
+            })()}
             <button
               onClick={() => setEditingSettings(true)}
               className="bg-white px-3 py-2 rounded-lg border border-gray-100 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 transition-colors text-sm flex items-center gap-1.5"
@@ -209,7 +244,7 @@ export default function Dashboard({
           <div className="bg-white rounded-2xl border border-indigo-100 p-6 mb-8 shadow-sm">
             <h3 className="font-bold text-gray-800 mb-4">Настройки на класа</h3>
             {saveError && <p className="text-red-600 text-sm mb-3">{saveError}</p>}
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-4 gap-4 mb-4">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Клас</label>
                 <input value={className} onChange={(e) => setClassName(e.target.value)}
@@ -223,6 +258,11 @@ export default function Dashboard({
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Учебна година</label>
                 <input value={schoolYear} onChange={(e) => setSchoolYear(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Краен срок</label>
+                <input type="date" value={deadlineStr} onChange={(e) => setDeadlineStr(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
               </div>
             </div>

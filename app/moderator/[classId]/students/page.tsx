@@ -6,6 +6,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server'
 import { sendAllInvites } from '../actions'
 import ModeratorSidebar from '../ModeratorSidebar'
 import StudentActions from './StudentActions'
+import BulkReminderButton from './BulkReminderButton'
 
 interface StudentRow {
   id: string
@@ -24,7 +25,7 @@ export default async function StudentsPage({ params }: { params: Promise<{ class
 
   const { data: classData } = await supabase
     .from('classes')
-    .select('id, name, school_year, school_logo_url')
+    .select('id, name, school_year, school_logo_url, deadline')
     .eq('id', classId)
     .single()
 
@@ -67,6 +68,13 @@ export default async function StudentsPage({ params }: { params: Promise<{ class
   const registeredCount = studentList.filter((s) => s.invite_accepted_at).length
   const invitedCount = studentList.filter((s) => s.parent_email && !s.invite_accepted_at).length
   const noInviteCount = studentList.filter((s) => !s.parent_email).length
+
+  const deadline = classData?.deadline ?? null
+  const deadlineDays = deadline
+    ? Math.ceil((new Date(deadline).getTime() - Date.now()) / 86_400_000)
+    : null
+
+  const hasAcceptedIncomplete = studentList.some((s) => s.invite_accepted_at)
 
   const [namePart] = classData?.name?.includes(' — ')
     ? classData.name.split(' — ')
@@ -145,24 +153,46 @@ export default async function StudentsPage({ params }: { params: Promise<{ class
             )}
           </div>
 
-          {/* Send all invites */}
-          {hasPendingInvites && (
-            <form
-              action={async () => {
-                'use server'
-                await sendAllInvites(classId)
-              }}
-              className="mt-4"
-            >
-              <button
-                type="submit"
-                className="inline-flex items-center gap-2 border border-indigo-200 text-indigo-600 hover:bg-indigo-50 px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
-              >
-                <span className="material-symbols-outlined text-base">send</span>
-                Изпрати покана на всички
-              </button>
-            </form>
+          {/* Deadline countdown */}
+          {deadlineDays !== null && (
+            <div className={`mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${
+              deadlineDays < 0
+                ? 'bg-red-100 text-red-700'
+                : deadlineDays <= 7
+                  ? 'bg-red-100 text-red-700'
+                  : deadlineDays <= 14
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-gray-100 text-gray-600'
+            }`}>
+              <span className="material-symbols-outlined text-base">timer</span>
+              {deadlineDays < 0
+                ? 'Срокът изтече'
+                : deadlineDays === 0
+                  ? 'Днес е крайният срок!'
+                  : `${deadlineDays} дни до крайния срок`}
+            </div>
           )}
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-3 mt-4">
+            {hasPendingInvites && (
+              <form
+                action={async () => {
+                  'use server'
+                  await sendAllInvites(classId)
+                }}
+              >
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 border border-indigo-200 text-indigo-600 hover:bg-indigo-50 px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base">send</span>
+                  Изпрати покана на всички
+                </button>
+              </form>
+            )}
+            {hasAcceptedIncomplete && <BulkReminderButton classId={classId} />}
+          </div>
         </div>
 
         {/* Student list */}
@@ -286,6 +316,7 @@ export default async function StudentsPage({ params }: { params: Promise<{ class
                         studentId={student.id}
                         parentEmail={student.parent_email}
                         inviteAccepted={!!student.invite_accepted_at}
+                        allDone={allDone}
                         classId={classId}
                         inviteToken={student.invite_token}
                       />

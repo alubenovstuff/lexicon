@@ -321,14 +321,20 @@ export default function WizardClient({
               </div>
               <div className="flex flex-col gap-2 pt-2">
                 <Link
-                  href={`/my/${studentId}`}
+                  href={`/my/${studentId}/preview`}
                   className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors text-center shadow-sm"
                 >
-                  Виж страницата на {firstName}
+                  Виж как ще изглежда страницата →
+                </Link>
+                <Link
+                  href={`/my/${studentId}`}
+                  className="w-full py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors text-center"
+                >
+                  Към моя профил
                 </Link>
                 <button
                   onClick={() => setStepIndex(2)}
-                  className="w-full py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
+                  className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   Редактирай отговорите
                 </button>

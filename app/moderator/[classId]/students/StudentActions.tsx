@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { resendInvite } from '../actions'
+import { resendInvite, sendReminderToParent } from '../actions'
 
 interface StudentActionsProps {
   studentId: string
   parentEmail: string | null
   inviteAccepted: boolean
+  allDone: boolean
   classId: string
   inviteToken: string
 }
@@ -16,12 +17,15 @@ export default function StudentActions({
   studentId,
   parentEmail,
   inviteAccepted,
+  allDone,
   classId,
   inviteToken,
 }: StudentActionsProps) {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [reminderLoading, setReminderLoading] = useState(false)
+  const [reminderSent, setReminderSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleResend() {
@@ -31,6 +35,15 @@ export default function StudentActions({
     setLoading(false)
     if (result.error) setError(result.error)
     else setSent(true)
+  }
+
+  async function handleReminder() {
+    setReminderLoading(true)
+    setError(null)
+    const result = await sendReminderToParent(studentId)
+    setReminderLoading(false)
+    if (result.error) setError(result.error)
+    else setReminderSent(true)
   }
 
   async function handleCopyLink() {
@@ -94,6 +107,24 @@ export default function StudentActions({
           >
             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>forward_to_inbox</span>
             {loading ? 'Изпращане...' : 'Препрати имейл'}
+          </button>
+        )
+      )}
+
+      {inviteAccepted && !allDone && (
+        reminderSent ? (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check_circle</span>
+            Напомняне изпратено
+          </span>
+        ) : (
+          <button
+            onClick={handleReminder}
+            disabled={reminderLoading}
+            className="inline-flex items-center gap-1 text-xs font-medium text-amber-500 hover:text-amber-700 transition-colors disabled:opacity-40"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>notifications</span>
+            {reminderLoading ? 'Изпращане...' : 'Напомни'}
           </button>
         )
       )}
