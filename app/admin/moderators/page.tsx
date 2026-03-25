@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { unstable_noStore as noStore } from 'next/cache'
+import Link from 'next/link'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 
 export default async function AdminModeratorsPage() {
@@ -102,9 +103,19 @@ export default async function AdminModeratorsPage() {
                         <p className="text-sm font-medium text-gray-800">{cls.name}</p>
                         <p className="text-xs text-gray-400">{cls.school_year}</p>
                       </div>
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLOR[cls.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                        {STATUS_LABEL[cls.status] ?? cls.status}
-                      </span>
+                      {cls.status === 'published' ? (
+                        <Link
+                          href={`/lexicon/${cls.id}`}
+                          target="_blank"
+                          className={`text-xs font-semibold px-2.5 py-1 rounded-full hover:opacity-75 transition-opacity ${STATUS_COLOR[cls.status]}`}
+                        >
+                          {STATUS_LABEL[cls.status]}
+                        </Link>
+                      ) : (
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLOR[cls.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                          {STATUS_LABEL[cls.status] ?? cls.status}
+                        </span>
+                      )}
                       <span className="text-xs text-gray-500 w-16 text-right">
                         {studentsByClass[cls.id] ?? 0} деца
                       </span>

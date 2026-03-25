@@ -77,13 +77,23 @@ export default function FinalizeView({
           <span className="material-symbols-outlined text-4xl text-green-500 block mb-2">celebration</span>
           <p className="text-green-800 font-bold text-lg mb-1">Лексиконът е публикуван!</p>
           <p className="text-green-700 text-sm mb-4">Родителите вече могат да го разгледат.</p>
-          <Link
-            href={`/lexicon/${classId}`}
-            className="inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors"
-          >
-            <span className="material-symbols-outlined text-base">open_in_new</span>
-            Виж публикувания
-          </Link>
+          <div className="flex items-center justify-center gap-3">
+            <Link
+              href={`/lexicon/${classId}`}
+              className="inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors"
+            >
+              <span className="material-symbols-outlined text-base">open_in_new</span>
+              Виж публикувания
+            </Link>
+            <a
+              href={`/api/pdf/${classId}`}
+              download
+              className="inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 text-sm font-semibold px-5 py-2.5 rounded-xl hover:border-indigo-300 hover:text-indigo-700 transition-colors shadow-sm"
+            >
+              <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+              Изтегли PDF
+            </a>
+          </div>
         </div>
       )}
 

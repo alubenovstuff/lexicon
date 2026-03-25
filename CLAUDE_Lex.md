@@ -40,6 +40,17 @@ No code should be written before this file is approved.
 Always look at existing files before creating new ones. Don't start building until you understand what's being asked. If anything is unclear, ask before starting.
 
 
+**Rule 5: Check compatibility before adding a new library**
+Before writing any code for a new third-party library, do a short compatibility check:
+1. Does it use React internally? → Does it conflict with Next.js App Router RSC (`react-server` condition)?
+2. Does it need Node.js APIs? → Is `export const runtime = 'nodejs'` enough, or is Pages Router needed?
+3. Does it have known issues with the current stack (Next.js 15, App Router, Vercel edge)?
+
+State your findings and proposed approach. Wait for approval before implementing.
+
+**Why this rule exists:** @react-pdf/renderer caused 4–5 debugging iterations (wrong runtime → wrong React instance fix → IIFE fix → finally Pages Router) because we skipped upfront compatibility research. A 5-minute check would have found the RSC dual-React-instance issue immediately.
+
+
 **Rule 4: Test before you respond**
 After making any code changes, run the relevant tests or start the dev server to check for errors before responding. Never say "done" if the code is untested.
 
@@ -80,7 +91,7 @@ When a task involves external tools or technical elements that a non-coder would
 
 
 - **Language:** TypeScript
-- **Framework:** Next.js 14 (App Router)
+- **Framework:** Next.js 15 (App Router)
 - **Backend-as-a-Service:** Supabase (Auth, Postgres, Storage, RLS)
 - **Deployment:** Vercel
 - **Styling:** Tailwind CSS

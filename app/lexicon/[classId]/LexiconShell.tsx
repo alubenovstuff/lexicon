@@ -1,5 +1,6 @@
 import { LexiconHeaderNav, LexiconBottomNav } from './LexiconNav'
 import { themes, defaultTheme } from '@/lib/templates/themes'
+import LexiconDevPanel from './LexiconDevPanel'
 
 interface Props {
   classId: string
@@ -53,6 +54,9 @@ export default function LexiconShell({ classId, logoUrl, themeId, children }: Pr
       <main className="max-w-screen-xl mx-auto px-6 pt-8">
         {children}
       </main>
+
+      {/* ── Dev panel — remove before going live ────────────────────── */}
+      <LexiconDevPanel classId={classId} />
 
       {/* ── Fixed bottom navigation ──────────────────────────────────── */}
       <footer

@@ -18,7 +18,7 @@ export default async function LexiconStudentPage({
   // Verify class is published
   const { data: classData } = await admin
     .from('classes')
-    .select('id, name, status')
+    .select('id, name, status, school_logo_url')
     .eq('id', classId)
     .single()
 
@@ -91,6 +91,7 @@ export default async function LexiconStudentPage({
     <StudentLexiconView
       classId={classId}
       className={classData.name}
+      schoolLogoUrl={classData.school_logo_url ?? null}
       student={student}
       questions={allQuestions ?? []}
       answers={answers ?? []}

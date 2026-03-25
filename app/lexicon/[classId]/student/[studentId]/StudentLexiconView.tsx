@@ -28,6 +28,7 @@ interface Message {
 interface Props {
   classId: string
   className: string
+  schoolLogoUrl?: string | null
   student: {
     id: string
     first_name: string
@@ -121,6 +122,7 @@ function VideoCard({ answer, question }: { answer: Answer; question: Question })
 export default function StudentLexiconView({
   classId,
   className,
+  schoolLogoUrl,
   student,
   questions,
   answers,
@@ -221,7 +223,7 @@ export default function StudentLexiconView({
 
             {/* Frame — gilded portrait border */}
             <div
-              className="p-2 rounded-[1.25rem]"
+              className="relative p-2 rounded-[1.25rem]"
               style={{
                 background: 'linear-gradient(135deg, #c8a96e 0%, #f0d89a 30%, #a0722a 55%, #f0d89a 75%, #c8a96e 100%)',
                 boxShadow: '0 25px 60px -12px rgba(26,28,28,0.25), inset 0 1px 0 rgba(255,255,255,0.3)',
@@ -232,7 +234,30 @@ export default function StudentLexiconView({
                 alt={`${student.first_name} ${student.last_name}`}
                 initials={initials}
                 variant="portrait"
+                messages={messages}
               />
+
+              {/* School logo seal — bottom-center of the frame */}
+              {schoolLogoUrl && (
+                <div
+                  className="absolute left-1/2 -translate-x-1/2 -bottom-5 z-10"
+                  style={{
+                    width: 44, height: 44,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #c8a96e 0%, #f0d89a 50%, #c8a96e 100%)',
+                    padding: 3,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.4)',
+                  }}
+                >
+                  <div className="w-full h-full rounded-full overflow-hidden bg-white flex items-center justify-center">
+                    <img
+                      src={schoolLogoUrl}
+                      alt="Лого"
+                      className="w-full h-full object-contain p-0.5"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Quote overlay card */}
@@ -275,15 +300,6 @@ export default function StudentLexiconView({
                   <span>{answeredQuestions.length} отговора</span>
                 </div>
               )}
-            </div>
-            <div className="mt-8">
-              <Link
-                href={`/my/messages/new?recipientId=${student.id}`}
-                className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors shadow"
-              >
-                <span className="material-symbols-outlined text-base">chat</span>
-                Напиши послание
-              </Link>
             </div>
           </div>
         </section>
