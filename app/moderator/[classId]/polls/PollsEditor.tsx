@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { createPoll, deletePoll } from './actions'
+import { useState, useTransition, useRef } from 'react'
+import { createPoll, deletePoll, reorderPolls } from './actions'
 
 const SUGGESTIONS = [
   'Най-голям шегаджия в класа',
@@ -35,6 +35,8 @@ export default function PollsEditor({ classId, initialPolls, studentCount }: Pro
   const [customText, setCustomText] = useState('')
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const dragIndex = useRef<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
   const MAX_POLLS = 10
 
@@ -55,6 +57,38 @@ export default function PollsEditor({ classId, initialPolls, studentCount }: Pro
         setError(null)
       }
     })
+  }
+
+  function handleDragStart(index: number) {
+    dragIndex.current = index
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault()
+    setDragOverIndex(index)
+  }
+
+  function handleDrop(index: number) {
+    const from = dragIndex.current
+    if (from === null || from === index) {
+      dragIndex.current = null
+      setDragOverIndex(null)
+      return
+    }
+    const reordered = [...polls]
+    const [moved] = reordered.splice(from, 1)
+    reordered.splice(index, 0, moved)
+    setPolls(reordered)
+    dragIndex.current = null
+    setDragOverIndex(null)
+    startTransition(async () => {
+      await reorderPolls(classId, reordered.map((p) => p.id))
+    })
+  }
+
+  function handleDragEnd() {
+    dragIndex.current = null
+    setDragOverIndex(null)
   }
 
   function handleDelete(pollId: string) {
@@ -187,11 +221,23 @@ export default function PollsEditor({ classId, initialPolls, studentCount }: Pro
             return (
               <div
                 key={poll.id}
-                className="group bg-white border border-gray-100 rounded-2xl px-6 py-5 shadow-sm hover:shadow-md transition-shadow"
+                draggable
+                onDragStart={() => handleDragStart(i)}
+                onDragOver={(e) => handleDragOver(e, i)}
+                onDrop={() => handleDrop(i)}
+                onDragEnd={handleDragEnd}
+                className={`group bg-white border rounded-2xl px-6 py-5 shadow-sm hover:shadow-md transition-all cursor-grab active:cursor-grabbing ${
+                  dragOverIndex === i ? 'border-indigo-400 scale-[1.01]' : 'border-gray-100'
+                }`}
               >
                 <div className="flex items-center gap-5">
-                  <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 font-bold text-sm flex-shrink-0">
-                    {i + 1}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="material-symbols-outlined text-gray-300 group-hover:text-gray-400 text-base transition-colors select-none">
+                      drag_indicator
+                    </span>
+                    <div className="w-7 h-7 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 font-bold text-sm">
+                      {i + 1}
+                    </div>
                   </div>
 
                   <div className="flex-1 min-w-0">

@@ -22,3 +22,18 @@ export async function deletePoll(classId: string, pollId: string) {
   revalidatePath(`/moderator/${classId}/polls`)
   return { error: error?.message ?? null }
 }
+
+export async function reorderPolls(classId: string, orderedIds: string[]) {
+  const admin = createServiceRoleClient()
+  await Promise.all(
+    orderedIds.map((id, i) =>
+      admin
+        .from('class_polls')
+        .update({ order_index: i + 1 })
+        .eq('id', id)
+        .eq('class_id', classId)
+    )
+  )
+  revalidatePath(`/moderator/${classId}/polls`)
+  return { error: null }
+}
