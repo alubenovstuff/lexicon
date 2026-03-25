@@ -271,86 +271,12 @@ function QuestionCard({
   )
 }
 
-// ─── Archive card (system questions) ──────────────────────────────────────────
-
-function ArchiveCard({
-  systemQuestions,
-  customQuestions,
-  onAddFromArchive,
-  isPending,
-}: {
-  systemQuestions: Question[]
-  customQuestions: Question[]
-  onAddFromArchive: (q: Question) => void
-  isPending: boolean
-}) {
-  const [expanded, setExpanded] = useState(false)
-
-  return (
-    <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl overflow-hidden">
-      {!expanded ? (
-        <button
-          onClick={() => setExpanded(true)}
-          className="w-full flex flex-col items-center text-center px-6 py-8 hover:bg-gray-100 transition-colors"
-        >
-          <div className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center mb-3 shadow-sm">
-            <span className="material-symbols-outlined text-2xl text-indigo-400">auto_awesome</span>
-          </div>
-          <p className="font-semibold text-gray-700 text-sm">Използвай идеи от архива</p>
-          <p className="text-xs text-gray-400 mt-1 max-w-[200px]">
-            Разгледай подбрани въпроси от успешни випуски в миналото.
-          </p>
-        </button>
-      ) : (
-        <div className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <p className="font-semibold text-sm text-gray-700">Идеи от архива</p>
-            <button
-              onClick={() => setExpanded(false)}
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              ✕ Затвори
-            </button>
-          </div>
-          <div className="space-y-2">
-            {systemQuestions.map((q) => {
-              const added = customQuestions.some((c) => c.text === q.text)
-              return (
-                <div
-                  key={q.id}
-                  className={`bg-white rounded-xl px-4 py-3 flex items-start gap-3 border transition-colors ${
-                    added ? 'border-gray-100 opacity-50' : 'border-gray-100 hover:border-indigo-200'
-                  }`}
-                >
-                  <p
-                    className="flex-1 text-sm text-gray-700 leading-snug"
-                    style={{ fontFamily: 'Noto Serif, serif' }}
-                  >
-                    {q.text}
-                  </p>
-                  <button
-                    disabled={added || isPending}
-                    onClick={() => onAddFromArchive(q)}
-                    className="flex-shrink-0 w-7 h-7 rounded-full border border-gray-300 text-gray-400 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center text-sm font-bold transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                    title={added ? 'Вече добавен' : 'Добави'}
-                  >
-                    {added ? '✓' : '+'}
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ─── Main editor ───────────────────────────────────────────────────────────────
 
 export default function QuestionsEditor({ classId, systemQuestions, customQuestions: initialCustom }: Props) {
   const [customQuestions, setCustomQuestions] = useState(initialCustom)
   const [adding, setAdding] = useState(false)
+  const [addTab, setAddTab] = useState<'write' | 'archive'>('write')
   const [isPending, startTransition] = useTransition()
   const [addError, setAddError] = useState<string | null>(null)
 
@@ -457,16 +383,100 @@ export default function QuestionsEditor({ classId, systemQuestions, customQuesti
         )}
       </div>
 
-      {/* ── Add form ───────────────────────────────────────────────── */}
+      {/* ── Question count info ────────────────────────────────────── */}
+      <div className="mb-8 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2.5 bg-indigo-50 border border-indigo-100 rounded-2xl px-5 py-3">
+          <span className="material-symbols-outlined text-indigo-400 text-lg">quiz</span>
+          <span className="text-sm text-indigo-700">
+            Въпросникът се състои от{' '}
+            <strong className="font-bold">{customQuestions.length}</strong>{' '}
+            {customQuestions.length === 1 ? 'въпрос' : 'въпроса'}
+          </span>
+        </div>
+        {systemQuestions.length > 0 && (
+          <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-2xl px-5 py-3">
+            <span className="material-symbols-outlined text-gray-400 text-lg">auto_awesome</span>
+            <span className="text-sm text-gray-500">
+              <strong className="font-bold">{systemQuestions.length}</strong> в архива
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Add / Archive panel ────────────────────────────────────── */}
       {adding && (
         <div className="mb-6">
-          {addError && <p className="text-red-500 text-xs mb-2 px-1">{addError}</p>}
-          <QuestionForm
-            initial={EMPTY_FORM}
-            onSave={handleAdd}
-            onCancel={() => { setAdding(false); setAddError(null) }}
-            isPending={isPending}
-          />
+          {/* Tab switcher */}
+          <div className="flex gap-1 mb-4 bg-gray-100 rounded-2xl p-1 w-fit">
+            <button
+              onClick={() => setAddTab('write')}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                addTab === 'write' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Напиши въпрос
+            </button>
+            <button
+              onClick={() => setAddTab('archive')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                addTab === 'archive' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">auto_awesome</span>
+              Идеи от архива
+            </button>
+          </div>
+
+          {addTab === 'write' ? (
+            <>
+              {addError && <p className="text-red-500 text-xs mb-2 px-1">{addError}</p>}
+              <QuestionForm
+                initial={EMPTY_FORM}
+                onSave={handleAdd}
+                onCancel={() => { setAdding(false); setAddError(null); setAddTab('write') }}
+                isPending={isPending}
+              />
+            </>
+          ) : (
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-2">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-gray-700">Избери въпрос от архива</p>
+                <button
+                  onClick={() => { setAdding(false); setAddTab('write') }}
+                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  ✕ Затвори
+                </button>
+              </div>
+              {systemQuestions.length === 0 ? (
+                <p className="text-sm text-gray-400 italic text-center py-4">Архивът е празен.</p>
+              ) : (
+                systemQuestions.map((q) => {
+                  const added = customQuestions.some((c) => c.text === q.text)
+                  return (
+                    <div
+                      key={q.id}
+                      className={`bg-gray-50 rounded-xl px-4 py-3 flex items-start gap-3 border transition-colors ${
+                        added ? 'border-gray-100 opacity-50' : 'border-gray-100 hover:border-indigo-200'
+                      }`}
+                    >
+                      <p className="flex-1 text-sm text-gray-700 leading-snug" style={{ fontFamily: 'Noto Serif, serif' }}>
+                        {q.text}
+                      </p>
+                      <button
+                        disabled={added || isPending}
+                        onClick={() => handleAddFromArchive(q)}
+                        className="flex-shrink-0 w-7 h-7 rounded-full border border-gray-300 text-gray-400 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center text-sm font-bold transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        title={added ? 'Вече добавен' : 'Добави'}
+                      >
+                        {added ? '✓' : '+'}
+                      </button>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -495,54 +505,6 @@ export default function QuestionsEditor({ classId, systemQuestions, customQuesti
         </div>
       )}
 
-      {/* ── Bottom cards ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <ArchiveCard
-          systemQuestions={systemQuestions}
-          customQuestions={customQuestions}
-          onAddFromArchive={handleAddFromArchive}
-          isPending={isPending}
-        />
-
-        {/* Groups card — links to polls page */}
-        <a
-          href={`/moderator/${classId}/polls`}
-          className="relative overflow-hidden bg-indigo-700 rounded-2xl p-6 text-white hover:bg-indigo-600 transition-colors block"
-        >
-          <div className="relative z-10">
-            <p className="text-lg font-bold mb-2">Групови въпроси</p>
-            <p className="text-sm text-indigo-200 mb-5 leading-relaxed">
-              Създай анкети за целия клас – „Най-голям шегаджия", „Бъдещ президент" и др.
-            </p>
-            <span className="text-white font-semibold text-sm border-b border-white/60 pb-0.5">
-              Управлявай анкетите →
-            </span>
-          </div>
-          <div className="absolute right-4 bottom-3 opacity-10 pointer-events-none">
-            <span className="material-symbols-outlined" style={{ fontSize: 96 }}>bar_chart</span>
-          </div>
-        </a>
-      </div>
-
-      {/* ── Footer ─────────────────────────────────────────────────── */}
-      <footer className="mt-16 pt-8 border-t border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <p
-            className="text-indigo-800 italic font-medium text-sm"
-            style={{ fontFamily: 'Noto Serif, serif' }}
-          >
-            Един неразделен клас
-          </p>
-          <p className="text-xs text-gray-400 uppercase tracking-widest mt-0.5">
-            © 2024 The Living Archive.
-          </p>
-        </div>
-        <div className="flex gap-6">
-          <span className="text-xs text-gray-400 uppercase tracking-widest">Privacy Policy</span>
-          <span className="text-xs text-gray-400 uppercase tracking-widest">Terms of Service</span>
-          <span className="text-xs text-gray-400 uppercase tracking-widest">Support</span>
-        </div>
-      </footer>
     </div>
   )
 }

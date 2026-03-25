@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const NAV_ITEMS = [
-  { label: 'Класът',         icon: 'group',        exact: true,  getHref: (id: string) => `/lexicon/${id}`          },
-  { label: 'Учениците',      icon: 'photo_library', exact: false, getHref: (id: string) => `/lexicon/${id}/students` },
-  { label: 'Нашите спомени', icon: 'equalizer',     exact: false, getHref: (id: string) => `/lexicon/${id}/memories` },
+  { label: 'Класът',         icon: 'auto_stories',  exact: true,  getHref: (id: string) => `/lexicon/${id}`          },
+  { label: 'Учениците',      icon: 'people',        exact: false, getHref: (id: string) => `/lexicon/${id}/students` },
+  { label: 'Нашите спомени', icon: 'photo_album',   exact: false, getHref: (id: string) => `/lexicon/${id}/memories` },
 ]
 
 export function LexiconHeaderNav({ classId }: { classId: string }) {
