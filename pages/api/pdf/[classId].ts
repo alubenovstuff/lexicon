@@ -166,9 +166,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const filename = `lexicon-${namePart.replace(/\s+/g, '-').toLowerCase()}.pdf`
+  const encodedFilename = encodeURIComponent(filename)
 
   res.setHeader('Content-Type', 'application/pdf')
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+  res.setHeader('Content-Disposition', `attachment; filename="lexicon.pdf"; filename*=UTF-8''${encodedFilename}`)
   res.setHeader('Cache-Control', 'no-store')
   res.send(buffer)
 }
