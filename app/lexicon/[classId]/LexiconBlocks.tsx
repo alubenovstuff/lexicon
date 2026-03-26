@@ -20,6 +20,7 @@ export interface QuestionAnswer {
 export interface VoiceItem {
   text: string
   size: 'lg' | 'md' | 'sm'
+  pct: number
 }
 
 export interface LexiconData {
@@ -39,7 +40,7 @@ export interface LexiconData {
   /** questionId → { text, items[] } */
   voiceData: Record<string, { text: string; items: VoiceItem[] }>
   /** pollId → { question, nominees[], totalVotes } */
-  pollData: Record<string, { question: string; nominees: { name: string; pct: number }[]; totalVotes: number }>
+  pollData: Record<string, { question: string; nominees: { name: string; pct: number; photoUrl: string | null }[]; totalVotes: number }>
   eventList: { id: string; title: string; event_date?: string | null; note?: string | null; photos?: string[] | null }[]
 }
 
@@ -280,9 +281,8 @@ function ClassVoiceBlock({ data, config }: { data: LexiconData; config: Record<s
 
   return (
     <section className="mb-16">
-      <h3 className="text-2xl mb-8" style={{ fontFamily: 'Noto Serif, serif', color: 'var(--lex-primary)' }}>Гласът на класа</h3>
+      <h3 className="text-2xl mb-8" style={{ fontFamily: 'Noto Serif, serif', color: 'var(--lex-primary)' }}>{v.text}</h3>
       <div className="p-8 flex flex-col items-center justify-center min-h-[200px]" style={{ backgroundColor: 'var(--lex-card)', borderRadius: 'var(--lex-radius)' }}>
-        <h4 className="text-xs font-bold uppercase tracking-[0.2em] mb-6 text-center" style={{ color: 'var(--lex-secondary)' }}>{v.text}</h4>
         <div className="flex flex-wrap items-center justify-center gap-3 text-center">
           {v.items.map((item, i) => (
             <span key={i} className={item.size === 'sm' ? 'italic' : ''} style={{
@@ -298,6 +298,84 @@ function ClassVoiceBlock({ data, config }: { data: LexiconData; config: Record<s
             </span>
           ))}
         </div>
+      </div>
+    </section>
+  )
+}
+
+function SubjectsBarBlock({ data, config }: { data: LexiconData; config: Record<string, unknown> }) {
+  const qid = config.questionId as string | null
+
+  if (!qid) return <PlaceholderBlock icon="bar_chart" text="Избери въпрос за бар диаграмата от редактора" color="primary" />
+
+  const v = data.voiceData[qid]
+  if (!v || v.items.length === 0) return <PlaceholderBlock icon="bar_chart" text="Все още няма отговори за тази диаграма" color="primary" />
+
+  const top3 = v.items.slice(0, 3)
+
+  return (
+    <section className="mb-16">
+      <h3 className="text-2xl mb-8" style={{ fontFamily: 'Noto Serif, serif', color: 'var(--lex-primary)' }}>{v.text}</h3>
+      <div className="p-8 space-y-5" style={{ backgroundColor: 'var(--lex-card)', borderRadius: 'var(--lex-radius)' }}>
+        {top3.map((item, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <span className="text-sm font-semibold min-w-[120px] text-right" style={{ color: 'var(--lex-text)' }}>
+              {item.text}
+            </span>
+            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'color-mix(in srgb, var(--lex-primary) 15%, transparent)' }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${item.pct}%`, backgroundColor: 'var(--lex-primary)' }}
+              />
+            </div>
+            <span className="text-xs font-bold w-10 text-left" style={{ color: 'var(--lex-muted)' }}>
+              {item.pct}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function PollsGridBlock({ data, config }: { data: LexiconData; config: Record<string, unknown> }) {
+  const pollIds = (config.pollIds as string[] | undefined) ?? Object.keys(data.pollData)
+  const polls = pollIds
+    .map(id => ({ id, ...(data.pollData[id] ?? {}) }))
+    .filter(p => p.nominees && p.nominees.length > 0) as Array<{ id: string; question: string; nominees: { name: string; pct: number; photoUrl: string | null }[] }>
+
+  if (polls.length === 0) return <PlaceholderBlock icon="emoji_events" text="Все още няма гласове за анкетите" color="secondary" />
+
+  return (
+    <section className="mb-16">
+      <h3 className="text-2xl mb-8" style={{ fontFamily: 'Noto Serif, serif', color: 'var(--lex-primary)' }}>Победители</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {polls.map(poll => {
+          const winner = poll.nominees[0]
+          const initials = winner.name.slice(0, 2).toUpperCase()
+          return (
+            <div
+              key={poll.id}
+              className="p-6 flex flex-col items-center gap-3 text-center"
+              style={{ backgroundColor: 'var(--lex-card)', borderRadius: 'var(--lex-radius)' }}
+            >
+              <p className="text-xs font-bold uppercase tracking-[0.15em] self-stretch" style={{ color: 'var(--lex-secondary)' }}>
+                {poll.question}
+              </p>
+              {/* Winner avatar */}
+              <div className="w-[60px] h-[60px] rounded-full overflow-hidden flex-none flex items-center justify-center" style={{ backgroundColor: 'var(--lex-primary-light)' }}>
+                {winner.photoUrl ? (
+                  <img src={winner.photoUrl} alt={winner.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-base font-bold" style={{ color: 'var(--lex-primary)' }}>{initials}</span>
+                )}
+              </div>
+              <p className="text-xl font-bold leading-tight" style={{ fontFamily: 'Noto Serif, serif', color: 'var(--lex-primary)' }}>
+                {winner.name}
+              </p>
+            </div>
+          )
+        })}
       </div>
     </section>
   )
@@ -330,6 +408,35 @@ function EventsBlock({ data, config, basePath }: { data: LexiconData; config: Re
   const items = eventList.slice(0, limit)
   const base = basePath ?? `/lexicon/${classId}`
   if (items.length === 0) return null
+
+  // photo_grid style — only events with photos
+  if (style === 'photo_grid') {
+    const photoItems = items.filter(e => e.photos && e.photos.length > 0)
+    if (photoItems.length === 0) return null
+    return (
+      <section className="mb-12">
+        <div className="flex items-center justify-between mb-8">
+          <h3 className="text-2xl" style={{ fontFamily: 'Noto Serif, serif', color: 'var(--lex-primary)' }}>Нашите спомени</h3>
+          <Link href={`${base}/memories`} className="text-sm font-semibold hover:underline" style={{ color: 'var(--lex-secondary)' }}>Виж всички →</Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {photoItems.map(event => (
+            <div key={event.id} className="relative aspect-square overflow-hidden group" style={{ borderRadius: 'var(--lex-radius)' }}>
+              <img
+                src={event.photos![0]}
+                alt={event.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <p className="absolute bottom-0 left-0 right-0 p-4 text-sm font-semibold text-white leading-tight" style={{ fontFamily: 'Noto Serif, serif' }}>
+                {event.title}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="mb-12">
@@ -415,7 +522,9 @@ export default function LexiconBlocks({ blocks, data, basePath }: { blocks: Bloc
           case 'question':      return <QuestionBlock      key={block.id} data={data} config={cfg} />
           case 'photo_gallery': return <PhotoGalleryBlock  key={block.id} data={data} config={cfg} />
           case 'class_voice':   return <ClassVoiceBlock    key={block.id} data={data} config={cfg} />
+          case 'subjects_bar':  return <SubjectsBarBlock   key={block.id} data={data} config={cfg} />
           case 'poll':          return <PollBlock          key={block.id} data={data} config={cfg} />
+          case 'polls_grid':    return <PollsGridBlock     key={block.id} data={data} config={cfg} />
           case 'events':        return <EventsBlock        key={block.id} data={data} config={cfg} basePath={basePath} />
           default:              return null
         }

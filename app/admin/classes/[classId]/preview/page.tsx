@@ -39,6 +39,7 @@ export default async function AdminPreviewPage({ params }: { params: Promise<{ c
     const cfg = b.config as Record<string, unknown>
     if ((b.type === 'question' || b.type === 'photo_gallery') && cfg.questionId) linkedQuestionIds.add(cfg.questionId as string)
     if (b.type === 'class_voice' && cfg.questionId) linkedVoiceIds.add(cfg.questionId as string)
+    if (b.type === 'subjects_bar' && cfg.questionId) linkedVoiceIds.add(cfg.questionId as string)
     if (b.type === 'poll' && cfg.pollId) linkedPollIds.add(cfg.pollId as string)
   }
 
@@ -77,9 +78,11 @@ export default async function AdminPreviewPage({ params }: { params: Promise<{ c
       const freq: Record<string, number> = {}
       for (const w of raw) { const k = w.trim().toLowerCase(); freq[k] = (freq[k] ?? 0) + 1 }
       const maxF = Math.max(...Object.values(freq), 1)
+      const total = raw.length
       const items: VoiceItem[] = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, n]) => ({
         text: raw.find(w => w.trim().toLowerCase() === k) ?? k,
         size: n >= maxF * 0.6 ? 'lg' : n >= maxF * 0.3 ? 'md' : 'sm',
+        pct: total > 0 ? Math.round((n / total) * 100) : 0,
       }))
       voiceData[q.id] = { text: q.text, items }
     }
@@ -102,6 +105,7 @@ export default async function AdminPreviewPage({ params }: { params: Promise<{ c
         nominees: Object.entries(countMap).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([sid, count]) => ({
           name: studentMap.get(sid)?.first_name ?? 'Ученик',
           pct: total > 0 ? Math.round((count / total) * 100) : 0,
+          photoUrl: studentMap.get(sid)?.photo_url ?? null,
         })),
       }
     }

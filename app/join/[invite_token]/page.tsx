@@ -42,10 +42,19 @@ export default async function JoinPage({ params }: Props) {
     if (name) moderatorName = name
   }
 
-  // If already logged in → go straight to wizard
+  // If already logged in → link student and go straight to wizard
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (user) redirect(`/my/${student.id}/wizard`)
+  if (user) {
+    await admin
+      .from('students')
+      .update({
+        parent_user_id: user.id,
+        ...(student.invite_accepted_at ? {} : { invite_accepted_at: new Date().toISOString() }),
+      })
+      .eq('id', student.id)
+    redirect(`/my/${student.id}/wizard`)
+  }
 
   return (
     <JoinShell student={student} classData={classData} moderatorName={moderatorName}>

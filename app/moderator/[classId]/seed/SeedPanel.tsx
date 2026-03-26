@@ -59,7 +59,7 @@ export default function SeedPanel({ classId }: Props) {
         <p className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-4">Генерирай данни</p>
 
         <p className="text-sm text-gray-600 mb-5 leading-relaxed">
-          Създава деца, въпроси от всеки тип, отговори (еднакви за всяко дете), 4 анкети с гласове, 4 спомена (без снимки) и по 2 послания на дете.
+          Попълва класа с деца и пълни профили. Използва съществуващите въпроси и анкети — всяко дете получава уникален отговор на всеки въпрос, гласове в анкетите, 10 спомена и по 3 послания.
         </p>
 
         <div className="flex items-center gap-4 mb-5">
@@ -78,12 +78,12 @@ export default function SeedPanel({ classId }: Props) {
         {/* What gets created */}
         <ul className="text-xs text-gray-500 space-y-1 mb-6 pl-1">
           {[
-            `${studentCount} деца (без снимки)`,
-            '8 въпроса — 5 лични, 2 better_together, 1 superhero',
-            '2 class_voice въпроса с анонимни отговори',
-            '4 анкети с разпределени гласове',
-            '4 спомена (без снимки)',
-            'По 2 одобрени послания за всяко дете',
+            `${studentCount} деца с уникални отговори на всеки въпрос`,
+            'Попълва всички class_voice въпроси с разнообразни отговори',
+            'Гласове за всички анкети на класа',
+            '10 спомена с дати и описания',
+            'По 3 одобрени послания за всяко дете',
+            'Автоматично свързва layout блоковете с въпросите',
           ].map(line => (
             <li key={line} className="flex items-center gap-2">
               <span className="material-symbols-outlined text-indigo-300 text-sm">check_circle</span>

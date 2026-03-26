@@ -4,7 +4,9 @@ export type BlockType =
   | 'question'
   | 'photo_gallery'
   | 'poll'
+  | 'polls_grid'
   | 'class_voice'
+  | 'subjects_bar'
   | 'events'
   | 'superhero'
 
@@ -35,14 +37,23 @@ export interface PollBlockConfig {
   placeholder?: string
 }
 
+export interface PollsGridBlockConfig {
+  pollIds?: string[]
+}
+
 export interface ClassVoiceBlockConfig {
+  questionId?: string | null
+  placeholder?: string
+}
+
+export interface SubjectsBarBlockConfig {
   questionId?: string | null
   placeholder?: string
 }
 
 export interface EventsBlockConfig {
   limit?: number
-  style?: 'cards' | 'polaroids' | 'timeline'
+  style?: 'cards' | 'polaroids' | 'timeline' | 'photo_grid'
 }
 
 export interface SuperheroBlockConfig {
@@ -55,7 +66,9 @@ export type BlockConfig =
   | QuestionBlockConfig
   | PhotoGalleryBlockConfig
   | PollBlockConfig
+  | PollsGridBlockConfig
   | ClassVoiceBlockConfig
+  | SubjectsBarBlockConfig
   | EventsBlockConfig
   | SuperheroBlockConfig
 

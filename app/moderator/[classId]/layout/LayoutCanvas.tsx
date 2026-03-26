@@ -10,7 +10,9 @@ const BLOCK_META: Record<BlockType, { label: string; icon: string; addLabel: str
   question:      { label: 'Въпрос',           icon: 'quiz',              addLabel: 'Избери въпрос' },
   photo_gallery: { label: 'Галерия',          icon: 'photo_library',     addLabel: 'Избери въпрос за снимки' },
   poll:          { label: 'Анкета',           icon: 'poll',              addLabel: 'Добави анкета' },
+  polls_grid:    { label: 'Победители',       icon: 'emoji_events',      addLabel: 'Победители в анкети' },
   class_voice:   { label: 'Гласът на класа', icon: 'record_voice_over', addLabel: 'Гласът на класа' },
+  subjects_bar:  { label: 'Предмети (графика)', icon: 'bar_chart',       addLabel: 'Бар диаграма' },
   events:        { label: 'Спомени',          icon: 'photo_album',       addLabel: 'Добави спомени' },
   superhero:     { label: 'Супергерой',       icon: 'bolt',              addLabel: 'AI изображение на класа' },
 }
@@ -26,7 +28,8 @@ function linkedLabel(type: BlockType, cfg: Record<string, unknown>, assets: Layo
       const id = cfg.pollId as string | null
       return id ? (assets.polls.find(p => p.id === id)?.label ?? null) : null
     }
-    case 'class_voice': {
+    case 'class_voice':
+    case 'subjects_bar': {
       const id = cfg.questionId as string | null
       return id ? (assets.voiceQuestions.find(q => q.id === id)?.label ?? null) : null
     }

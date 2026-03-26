@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import PhotoUpload from '../PhotoUpload'
+import RecordMedia from '../question/[questionId]/RecordMedia'
 import { saveDraft, submitAnswer } from '../actions'
 
 interface WizardQuestion {
@@ -194,18 +195,13 @@ function VideoStep({
   const [uploading, setUploading]   = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]           = useState<string | null>(null)
-  const inputRef                    = useRef<HTMLInputElement>(null)
+  const pendingFileRef              = useRef<File | null>(null)
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
+  async function uploadFile(file: File) {
     setError(null)
     setUploading(true)
-
     const formData = new FormData()
     formData.append('file', file)
-
     try {
       const res  = await fetch('/api/media/upload', { method: 'POST', body: formData })
       const data = await res.json()
@@ -219,12 +215,30 @@ function VideoStep({
   }
 
   async function handleNext() {
+    // If there's a pending file that hasn't been uploaded yet, upload it first
+    if (pendingFileRef.current && !videoUrl) {
+      await uploadFile(pendingFileRef.current)
+      pendingFileRef.current = null
+      return  // state update will re-render; user taps Напред again
+    }
     if (!videoUrl) { onNext(); return }
     setSubmitting(true)
     setError(null)
     const res = await submitAnswer(studentId, question.id, { media_url: videoUrl, media_type: 'video' })
     if (res.error) { setError(res.error); setSubmitting(false) }
     else onNext()
+  }
+
+  function handleReady(file: File) {
+    pendingFileRef.current = file
+    // Auto-upload immediately
+    uploadFile(file)
+  }
+
+  function handleClear() {
+    pendingFileRef.current = null
+    setVideoUrl(null)
+    setError(null)
   }
 
   return (
@@ -236,40 +250,37 @@ function VideoStep({
         </h2>
       </div>
 
-      <div className="flex flex-col items-center gap-4 py-2">
-        {videoUrl ? (
+      {/* Show uploaded video above the recorder when available */}
+      {videoUrl && (
+        <div className="space-y-2">
           <video
             src={videoUrl}
             controls
             className="w-full rounded-2xl border border-gray-200 shadow-sm max-h-56 bg-black"
           />
-        ) : (
-          <div
-            onClick={() => inputRef.current?.click()}
-            className="w-full h-40 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-indigo-100 transition-colors"
+          <button
+            onClick={handleClear}
+            className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 w-full text-center"
           >
-            <span className="material-symbols-outlined text-4xl text-indigo-300">videocam</span>
-            <p className="text-sm text-indigo-400 font-medium">Добавете видео</p>
-            <p className="text-xs text-gray-400">MP4, MOV, WebM — до 100 MB</p>
-          </div>
-        )}
+            Смени видеото
+          </button>
+        </div>
+      )}
 
-        <button
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="text-xs text-indigo-500 hover:text-indigo-700 underline underline-offset-2 disabled:opacity-50"
-        >
-          {uploading ? 'Качва се...' : videoUrl ? 'Смени видеото' : 'Избери файл'}
-        </button>
-
-        <input
-          ref={inputRef}
-          type="file"
-          accept="video/*"
-          className="hidden"
-          onChange={handleFileChange}
+      {!videoUrl && (
+        <RecordMedia
+          type="video"
+          onReady={handleReady}
+          onClear={handleClear}
+          disabled={uploading || submitting}
         />
-      </div>
+      )}
+
+      {uploading && (
+        <p className="text-xs text-indigo-500 text-center flex items-center justify-center gap-1">
+          <span className="animate-spin">↻</span> Качва се...
+        </p>
+      )}
 
       {error && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</p>
@@ -385,11 +396,12 @@ export default function WizardClient({
                 </p>
               </div>
 
-              <div className="flex flex-col items-center py-4">
+              <div className="py-2">
                 <PhotoUpload
                   studentId={studentId}
                   photoUrl={photoUrl}
                   firstName={firstName}
+                  wizardMode
                 />
               </div>
 
@@ -413,6 +425,7 @@ export default function WizardClient({
           {/* ── Question ──────────────────────────────────────────────────── */}
           {step.kind === 'question' && step.question.type === 'video' && (
             <VideoStep
+              key={step.question.id}
               studentId={studentId}
               question={step.question}
               onNext={next}
@@ -421,6 +434,7 @@ export default function WizardClient({
           )}
           {step.kind === 'question' && step.question.type !== 'video' && (
             <QuestionStep
+              key={step.question.id}
               studentId={studentId}
               question={step.question}
               onNext={next}

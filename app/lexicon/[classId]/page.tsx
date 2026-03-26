@@ -42,8 +42,14 @@ export default async function LexiconCoverPage({ params }: { params: Promise<{ c
     if (b.type === 'class_voice' && cfg.questionId) {
       linkedVoiceIds.add(cfg.questionId as string)
     }
+    if (b.type === 'subjects_bar' && cfg.questionId) {
+      linkedVoiceIds.add(cfg.questionId as string)
+    }
     if (b.type === 'poll' && cfg.pollId) {
       linkedPollIds.add(cfg.pollId as string)
+    }
+    if (b.type === 'polls_grid' && Array.isArray(cfg.pollIds)) {
+      for (const id of cfg.pollIds as string[]) linkedPollIds.add(id)
     }
   }
 
@@ -100,6 +106,7 @@ export default async function LexiconCoverPage({ params }: { params: Promise<{ c
 
     for (const q of qTexts.data ?? []) {
       const raw = (voiceAnswers.data ?? []).filter(a => a.question_id === q.id).map(a => a.content)
+      const total = raw.length
       const freq: Record<string, number> = {}
       for (const w of raw) {
         const k = w.trim().toLowerCase()
@@ -112,6 +119,7 @@ export default async function LexiconCoverPage({ params }: { params: Promise<{ c
         .map(([k, n]) => ({
           text: raw.find(w => w.trim().toLowerCase() === k) ?? k,
           size: n >= maxF * 0.6 ? 'lg' : n >= maxF * 0.3 ? 'md' : 'sm',
+          pct: total > 0 ? Math.round((n / total) * 100) : 0,
         }))
       voiceData[q.id] = { text: q.text, items }
     }
@@ -138,6 +146,7 @@ export default async function LexiconCoverPage({ params }: { params: Promise<{ c
         .map(([sid, count]) => ({
           name: studentMap.get(sid)?.first_name ?? 'Ученик',
           pct: total > 0 ? Math.round((count / total) * 100) : 0,
+          photoUrl: studentMap.get(sid)?.photo_url ?? null,
         }))
       pollData[p.id] = { question: p.question, nominees, totalVotes: total }
     }

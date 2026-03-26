@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { createEvent, updateEvent, deleteEvent } from './actions'
 
-const MAX_PHOTOS = 3
+const MAX_PHOTOS = 5
 
 interface Event {
   id: string
@@ -148,17 +148,23 @@ function EventRow({
   }
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || photos.length >= MAX_PHOTOS) return
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
     e.target.value = ''
+    const slots = MAX_PHOTOS - photos.length
+    const toUpload = files.slice(0, slots)
     setUploading(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await fetch('/api/media/upload', { method: 'POST', body: formData })
-      const data = await res.json()
-      if (data.url) {
-        const newPhotos = [...photos, data.url]
+      const uploaded: string[] = []
+      for (const file of toUpload) {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch('/api/media/upload', { method: 'POST', body: formData })
+        const data = await res.json()
+        if (data.url) uploaded.push(data.url)
+      }
+      if (uploaded.length > 0) {
+        const newPhotos = [...photos, ...uploaded]
         setPhotos(newPhotos)
         await updateEvent(classId, event.id, {
           title: event.title,
@@ -263,6 +269,7 @@ function EventRow({
             <input
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
               onChange={handlePhotoUpload}
               disabled={uploading}

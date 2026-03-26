@@ -20,7 +20,7 @@ export default async function AdminPreviewStudentPage({ params }: { params: Prom
   if (!student) notFound()
 
   const { data: allQuestions } = await admin.from('questions').select('id, text, order_index, type').eq('class_id', classId).order('order_index')
-  const { data: answers } = await admin.from('answers').select('question_id, text_content, media_url, media_type').eq('student_id', studentId).eq('status', 'approved')
+  const { data: answers } = await admin.from('answers').select('question_id, text_content, media_url, media_type').eq('student_id', studentId)
   const { data: receivedMessages } = await admin.from('peer_messages').select('id, content, author_student_id').eq('recipient_student_id', studentId).eq('status', 'approved')
 
   const authorIds = [...new Set((receivedMessages ?? []).map(m => m.author_student_id))]

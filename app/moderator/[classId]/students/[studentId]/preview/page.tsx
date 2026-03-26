@@ -42,7 +42,6 @@ export default async function ModeratorStudentPreview({
     .from('answers')
     .select('question_id, text_content, media_url, media_type')
     .eq('student_id', studentId)
-    .eq('status', 'approved')
 
   const { data: receivedMessages } = await admin
     .from('peer_messages')

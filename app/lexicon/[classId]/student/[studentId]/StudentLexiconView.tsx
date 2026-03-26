@@ -316,7 +316,7 @@ export default function StudentLexiconView({
               className="font-headline text-3xl font-bold text-on-surface mb-12 flex items-center gap-4"
             >
               <span className="w-8 h-px bg-primary block" />
-              Живи спомени
+              Това съм аз
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -8,7 +8,9 @@ const BLOCK_META: Record<BlockType, { label: string; icon: string; color: string
   question:      { label: 'Въпрос',           icon: 'quiz',              color: 'bg-amber-50 text-amber-700'  },
   photo_gallery: { label: 'Галерия',          icon: 'photo_library',     color: 'bg-pink-50 text-pink-700'    },
   poll:          { label: 'Анкета',           icon: 'bar_chart',         color: 'bg-green-50 text-green-700'  },
+  polls_grid:    { label: 'Победители',       icon: 'emoji_events',      color: 'bg-emerald-50 text-emerald-700' },
   class_voice:   { label: 'Гласът на класа', icon: 'record_voice_over', color: 'bg-purple-50 text-purple-700'},
+  subjects_bar:  { label: 'Предмети (графика)', icon: 'bar_chart',       color: 'bg-teal-50 text-teal-700'   },
   events:        { label: 'Спомени',          icon: 'photo_album',       color: 'bg-orange-50 text-orange-700'},
   superhero:     { label: 'Супергерой',       icon: 'bolt',              color: 'bg-yellow-50 text-yellow-700'},
 }
@@ -138,6 +140,17 @@ function ConfigBody({ type, cfg, assets, set }: {
         />
       )
 
+    case 'subjects_bar':
+      return (
+        <AssetPicker
+          label="Въпрос (class voice)"
+          value={(cfg.questionId as string) ?? ''}
+          options={assets.voiceQuestions}
+          emptyLabel="Избери въпрос..."
+          onChange={v => set('questionId', v || null)}
+        />
+      )
+
     case 'photo_gallery':
       return (
         <div className="space-y-4">
@@ -185,9 +198,10 @@ function ConfigBody({ type, cfg, assets, set }: {
             label="Стил"
             value={(cfg.style as string) ?? 'polaroids'}
             options={[
-              { value: 'polaroids', label: 'Поляроиди' },
-              { value: 'cards',     label: 'Карти' },
-              { value: 'timeline',  label: 'Таймлайн' },
+              { value: 'polaroids',  label: 'Поляроиди' },
+              { value: 'cards',      label: 'Карти' },
+              { value: 'timeline',   label: 'Таймлайн' },
+              { value: 'photo_grid', label: 'Фото грид' },
             ]}
             onChange={v => set('style', v)}
           />
