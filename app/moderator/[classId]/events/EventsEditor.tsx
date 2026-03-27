@@ -119,10 +119,14 @@ function EventRow({
   event,
   classId,
   index,
+  onUpdate,
+  onDelete,
 }: {
   event: Event
   classId: string
   index: number
+  onUpdate: (updated: Event) => void
+  onDelete: (id: string) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [photos, setPhotos] = useState<string[]>(event.photos ?? [])
@@ -137,7 +141,10 @@ function EventRow({
         event_date: form.event_date || null,
         note: form.note || null,
       })
-      if (!result.error) setEditing(false)
+      if (!result.error) {
+        setEditing(false)
+        onUpdate({ ...event, title: form.title, event_date: form.event_date || null, note: form.note || null })
+      }
     })
   }
 
@@ -145,6 +152,7 @@ function EventRow({
     if (!confirm(`Изтриване на „${event.title}"?`)) return
     startTransition(async () => {
       await deleteEvent(classId, event.id)
+      onDelete(event.id)
     })
   }
 
@@ -179,6 +187,7 @@ function EventRow({
           setUploadError('Снимките се качиха, но не се запазиха. Опитайте отново.')
         } else {
           setPhotos(newPhotos)
+          onUpdate({ ...event, photos: newPhotos })
         }
       }
     } catch {
@@ -197,6 +206,7 @@ function EventRow({
       note: event.note,
       photos: newPhotos,
     })
+    onUpdate({ ...event, photos: newPhotos })
   }
 
   if (editing) {
@@ -312,6 +322,14 @@ export default function EventsEditor({
 
   const canAdd = events.length < MAX_EVENTS
 
+  function handleUpdateEvent(updated: Event) {
+    setEvents(prev => prev.map(e => e.id === updated.id ? updated : e))
+  }
+
+  function handleDeleteEvent(id: string) {
+    setEvents(prev => prev.filter(e => e.id !== id))
+  }
+
   function handleAdd(form: { title: string; event_date: string; note: string }) {
     setAddError(null)
     startTransition(async () => {
@@ -408,7 +426,7 @@ export default function EventsEditor({
         ) : (
           <div className="space-y-3">
             {events.map((event, i) => (
-              <EventRow key={event.id} event={event} classId={classId} index={i} />
+              <EventRow key={event.id} event={event} classId={classId} index={i} onUpdate={handleUpdateEvent} onDelete={handleDeleteEvent} />
             ))}
           </div>
         )}
