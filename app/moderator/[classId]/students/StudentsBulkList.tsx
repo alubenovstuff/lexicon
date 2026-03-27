@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import StudentActions from './StudentActions'
 import { deleteStudents } from './actions'
 
@@ -27,6 +28,7 @@ export default function StudentsBulkList({
   classId: string
   students: StudentRowData[]
 }) {
+  const router = useRouter()
   const [selected, setSelected]     = useState<Set<string>>(new Set())
   const [confirm, setConfirm]       = useState<string[] | null>(null) // ids to confirm-delete
   const [isPending, startTransition] = useTransition()
@@ -62,11 +64,8 @@ export default function StudentsBulkList({
       if (result.error) {
         setError(result.error)
       } else {
-        setSelected(prev => {
-          const next = new Set(prev)
-          ids.forEach(id => next.delete(id))
-          return next
-        })
+        setSelected(new Set())
+        router.refresh()
       }
       setConfirm(null)
     })
