@@ -18,6 +18,7 @@ export interface ModeratorRowData {
   email: string
   createdAt: string
   lastSignIn: string | null
+  role: 'admin' | 'moderator' | 'student'
   classes: ModeratorClass[]
   totalStudents: number
   publishedCount: number
@@ -33,17 +34,38 @@ const STATUS_LABEL: Record<string, string> = {
   draft: 'Чернова', filling: 'Непопълнен', unpublished: 'Непубликуван', published: 'Публикуван',
 }
 
+type FilterRole = 'all' | 'admin' | 'moderator' | 'student'
+
+const FILTER_TABS: { key: FilterRole; label: string; icon: string }[] = [
+  { key: 'all',       label: 'Всички',    icon: 'group' },
+  { key: 'admin',     label: 'Админи',    icon: 'shield_person' },
+  { key: 'moderator', label: 'Модератори', icon: 'school' },
+  { key: 'student',   label: 'Родители',  icon: 'family_restroom' },
+]
+
+const ROLE_BADGE: Record<string, { label: string; color: string }> = {
+  admin:     { label: 'Админ',     color: 'bg-purple-100 text-purple-700' },
+  moderator: { label: 'Модератор', color: 'bg-indigo-100 text-indigo-700' },
+  student:   { label: 'Родител',   color: 'bg-teal-100 text-teal-700' },
+}
+
 export default function ModeratorsBulkList({ moderators }: { moderators: ModeratorRowData[] }) {
   const router = useRouter()
+  const [filter, setFilter] = useState<FilterRole>('all')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirm, setConfirm] = useState<string[] | null>(null)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  const allSelected = moderators.length > 0 && selected.size === moderators.length
+  const visible = filter === 'all' ? moderators : moderators.filter(m => m.role === filter)
+  const allSelected = visible.length > 0 && visible.every(m => selected.has(m.id))
 
   function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(moderators.map(m => m.id)))
+    if (allSelected) {
+      setSelected(prev => { const next = new Set(prev); visible.forEach(m => next.delete(m.id)); return next })
+    } else {
+      setSelected(prev => new Set([...prev, ...visible.map(m => m.id)]))
+    }
   }
 
   function toggle(id: string) {
@@ -71,6 +93,32 @@ export default function ModeratorsBulkList({ moderators }: { moderators: Moderat
 
   return (
     <>
+      {/* Filter tabs */}
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {FILTER_TABS.map(tab => {
+          const count = tab.key === 'all' ? moderators.length : moderators.filter(m => m.role === tab.key).length
+          return (
+            <button
+              key={tab.key}
+              onClick={() => { setFilter(tab.key); setSelected(new Set()) }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                filter === tab.key
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
+              }`}
+            >
+              <span className="material-symbols-outlined text-base">{tab.icon}</span>
+              {tab.label}
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                filter === tab.key ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+              }`}>
+                {count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
       {/* Select-all row */}
       <div className="flex items-center gap-3 px-1 py-1 mb-1">
         <input
@@ -85,7 +133,7 @@ export default function ModeratorsBulkList({ moderators }: { moderators: Moderat
       </div>
 
       <div className="space-y-4">
-        {moderators.map((user) => {
+        {visible.map((user) => {
           const isSelected = selected.has(user.id)
           const initials = (user.email ?? '?')[0].toUpperCase()
 
@@ -108,7 +156,12 @@ export default function ModeratorsBulkList({ moderators }: { moderators: Moderat
                   {initials}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm">{user.email}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-gray-900 text-sm">{user.email}</p>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ROLE_BADGE[user.role]?.color}`}>
+                      {ROLE_BADGE[user.role]?.label}
+                    </span>
+                  </div>
                   <p className="text-xs text-gray-400 mt-0.5">
                     Регистриран: {new Date(user.createdAt).toLocaleDateString('bg-BG')}
                     {user.lastSignIn && (

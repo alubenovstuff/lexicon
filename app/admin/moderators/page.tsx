@@ -25,22 +25,34 @@ export default async function AdminModeratorsPage() {
     classesByModerator.set(cls.moderator_id, [...existing, cls])
   }
 
-  // Get student counts per class
+  // Get student counts per class + parent user ids
   const { data: students } = await admin
     .from('students')
-    .select('class_id')
+    .select('class_id, parent_user_id')
   const studentsByClass: Record<string, number> = {}
+  const parentUserIds = new Set<string>()
   for (const s of students ?? []) {
     studentsByClass[s.class_id] = (studentsByClass[s.class_id] ?? 0) + 1
+    if (s.parent_user_id) parentUserIds.add(s.parent_user_id)
   }
+
+  const adminEmail = process.env.ADMIN_EMAIL
 
   const moderators: ModeratorRowData[] = allUsers.map((user) => {
     const userClasses = classesByModerator.get(user.id) ?? []
+    const role: ModeratorRowData['role'] =
+      user.email === adminEmail         ? 'admin'
+      : userClasses.length > 0         ? 'moderator'
+      : parentUserIds.has(user.id)     ? 'student'
+      : (user.user_metadata?.role === 'student') ? 'student'
+      : 'moderator'
+
     return {
       id: user.id,
       email: user.email ?? user.id,
       createdAt: user.created_at,
       lastSignIn: user.last_sign_in_at ?? null,
+      role,
       classes: userClasses.map(cls => ({
         id: cls.id,
         name: cls.name,
