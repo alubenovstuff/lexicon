@@ -346,7 +346,7 @@ export default function EventsEditor({
         setEvents((prev) => [
           ...prev,
           {
-            id: 'pending-' + Date.now(),
+            id: result.id!,
             title: form.title,
             event_date: form.event_date || null,
             note: form.note || null,
@@ -371,7 +371,7 @@ export default function EventsEditor({
         setEvents((prev) => [
           ...prev,
           {
-            id: 'pending-' + Date.now(),
+            id: result.id!,
             title,
             event_date: null,
             note: null,
