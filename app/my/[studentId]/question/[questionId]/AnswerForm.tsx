@@ -44,6 +44,7 @@ export default function AnswerForm({
   const [textValue, setTextValue] = useState(answer?.text_content ?? '')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [submitStatus, setSubmitStatus] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   // ── Video state ─────────────────────────────────────────────────────────────
@@ -79,14 +80,19 @@ export default function AnswerForm({
   async function handleTextSubmit() {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     setSubmitError(null)
-    const result = await submitAnswer(studentId, question.id, { text_content: textValue })
-    if (result.error) {
-      setSubmitError(result.error)
-    } else {
-      setSubmitStatus('submitted')
-      if (nextUnansweredId) {
-        router.push(`/my/${studentId}/question/${nextUnansweredId}`)
+    setSubmitting(true)
+    try {
+      const result = await submitAnswer(studentId, question.id, { text_content: textValue })
+      if (result.error) {
+        setSubmitError(result.error)
+      } else {
+        setSubmitStatus('submitted')
+        if (nextUnansweredId) {
+          router.push(`/my/${studentId}/question/${nextUnansweredId}`)
+        }
       }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -273,10 +279,10 @@ export default function AnswerForm({
             {!isLocked && (
               <button
                 onClick={handleTextSubmit}
-                disabled={!textValue.trim()}
+                disabled={!textValue.trim() || submitting}
                 className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                Изпрати
+                {submitting ? 'Изпращане...' : 'Изпрати'}
               </button>
             )}
           </div>

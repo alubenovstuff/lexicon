@@ -127,6 +127,7 @@ function EventRow({
   const [editing, setEditing] = useState(false)
   const [photos, setPhotos] = useState<string[]>(event.photos ?? [])
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   function handleSave(form: { title: string; event_date: string; note: string }) {
@@ -154,8 +155,8 @@ function EventRow({
     const slots = MAX_PHOTOS - photos.length
     const toUpload = files.slice(0, slots)
     setUploading(true)
+    setUploadError(null)
     try {
-      // Upload all files in parallel
       const results = await Promise.all(
         toUpload.map(async (file) => {
           const formData = new FormData()
@@ -168,14 +169,20 @@ function EventRow({
       const uploaded = results.filter(Boolean) as string[]
       if (uploaded.length > 0) {
         const newPhotos = [...photos, ...uploaded]
-        setPhotos(newPhotos)
-        await updateEvent(classId, event.id, {
+        const result = await updateEvent(classId, event.id, {
           title: event.title,
           event_date: event.event_date,
           note: event.note,
           photos: newPhotos,
         })
+        if (result.error) {
+          setUploadError('Снимките се качиха, но не се запазиха. Опитайте отново.')
+        } else {
+          setPhotos(newPhotos)
+        }
       }
+    } catch {
+      setUploadError('Качването не успя. Опитайте отново.')
     } finally {
       setUploading(false)
     }
@@ -282,6 +289,9 @@ function EventRow({
 
         <span className="text-xs text-gray-400">{photos.length}/{MAX_PHOTOS}</span>
       </div>
+      {uploadError && (
+        <p className="text-xs text-red-500 pl-11">{uploadError}</p>
+      )}
     </div>
   )
 }
