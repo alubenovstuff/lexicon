@@ -40,7 +40,7 @@ export default function CreateClassForm({ defaultModeratorName = '' }: { default
 
   useEffect(() => {
     if (state.classId) {
-      router.push(`/moderator/${state.classId}/layout`)
+      router.push(`/moderator/${state.classId}`)
     }
   }, [state.classId, router])
 

@@ -2,6 +2,8 @@ import { LexiconHeaderNav, LexiconBottomNav } from './LexiconNav'
 import { themes, defaultTheme } from '@/lib/templates/themes'
 import LexiconDevPanel from './LexiconDevPanel'
 import SchoolPattern from './SchoolPattern'
+import KindergartenPattern from './KindergartenPattern'
+import TeensPattern from './TeensPattern'
 
 interface Props {
   classId: string
@@ -14,7 +16,9 @@ interface Props {
 export default function LexiconShell({ classId, logoUrl, themeId, basePath, children }: Props) {
   const theme = (themeId && themes[themeId]) ? themes[themeId] : defaultTheme
 
-  const showPattern = !themeId || themeId === 'primary' || themeId === 'classic'
+  const showSchoolPattern = !themeId || themeId === 'primary' || themeId === 'classic'
+  const showKinderPattern = themeId === 'kindergarten'
+  const showTeensPattern  = themeId === 'teens'
 
   return (
     <div
@@ -26,7 +30,9 @@ export default function LexiconShell({ classId, logoUrl, themeId, basePath, chil
         ...theme.vars,
       } as React.CSSProperties}
     >
-      {showPattern && <SchoolPattern />}
+      {showSchoolPattern && <SchoolPattern />}
+      {showKinderPattern && <KindergartenPattern />}
+      {showTeensPattern  && <TeensPattern />}
       {/* ── Sticky header ────────────────────────────────────────────── */}
       <header
         className="flex flex-col items-center w-full pt-4 px-6 max-w-screen-xl mx-auto sticky top-0 z-40 relative"
@@ -49,11 +55,11 @@ export default function LexiconShell({ classId, logoUrl, themeId, basePath, chil
               className="text-2xl italic"
               style={{ fontFamily: 'Noto Serif, serif', color: 'var(--lex-primary)' }}
             >
-              Един неразделен клас
+              {themeId === 'kindergarten' ? 'Нашата страхотна група' : 'Един неразделен клас'}
             </h1>
           </div>
         </div>
-        <LexiconHeaderNav classId={classId} basePath={basePath} />
+        <LexiconHeaderNav classId={classId} basePath={basePath} themeId={themeId} />
       </header>
 
       {/* ── Page content ─────────────────────────────────────────────── */}
@@ -73,7 +79,7 @@ export default function LexiconShell({ classId, logoUrl, themeId, basePath, chil
           boxShadow: '0 -4px 40px rgba(26,28,28,0.06)',
         }}
       >
-        <LexiconBottomNav classId={classId} basePath={basePath} />
+        <LexiconBottomNav classId={classId} basePath={basePath} themeId={themeId} />
       </footer>
     </div>
   )

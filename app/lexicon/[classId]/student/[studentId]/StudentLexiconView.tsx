@@ -63,6 +63,7 @@ interface Props {
   showAllQuestions?: boolean
   /** When true, skip the outer shell/nav/footer (a layout.tsx provides them) */
   embedded?: boolean
+  themeId?: string | null
 }
 
 function AudioPlayer({ src }: { src: string }) {
@@ -147,6 +148,7 @@ export default function StudentLexiconView({
   isPremium = false,
   showAllQuestions = false,
   embedded = false,
+  themeId,
 }: Props) {
   const resolvedPrevHref = prevHref !== undefined ? prevHref : (prevStudentId ? `/lexicon/${classId}/student/${prevStudentId}` : null)
   const resolvedNextHref = nextHref !== undefined ? nextHref : (nextStudentId ? `/lexicon/${classId}/student/${nextStudentId}` : null)
@@ -225,7 +227,7 @@ export default function StudentLexiconView({
               href={resolvedBackHref}
               className="font-headline text-xl italic text-on-surface"
             >
-              Един неразделен клас
+              {themeId === 'kindergarten' ? 'Нашата страхотна група' : 'Един неразделен клас'}
             </Link>
             <div className="flex items-center gap-4">{prevNextNav}</div>
           </div>
@@ -546,7 +548,7 @@ export default function StudentLexiconView({
             boxShadow: '0 -4px 40px rgba(27,13,162,0.06)',
           }}
         >
-          <LexiconBottomNav classId={classId} basePath={basePath} />
+          <LexiconBottomNav classId={classId} basePath={basePath} themeId={themeId} />
         </footer>
       )}
 

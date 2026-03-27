@@ -18,7 +18,7 @@ export default async function LexiconStudentPage({
   // Verify class is published
   const { data: classData } = await admin
     .from('classes')
-    .select('id, name, status, plan, school_logo_url')
+    .select('id, name, status, plan, school_logo_url, template_id')
     .eq('id', classId)
     .single()
 
@@ -126,6 +126,7 @@ export default async function LexiconStudentPage({
       prevStudentId={prevStudentId}
       nextStudentId={nextStudentId}
       isPremium={classData.plan === 'premium'}
+      themeId={classData.template_id}
       embedded
     />
   )

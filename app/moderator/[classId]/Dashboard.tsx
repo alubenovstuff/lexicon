@@ -358,16 +358,8 @@ export default function Dashboard({
           </div>
 
           {/* Quick stats */}
-          <div className="col-span-12 lg:col-span-5 grid grid-cols-2 gap-4">
-            <Link href={`${base}/answers`}
-              className="bg-gray-50 border border-gray-100 rounded-2xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
-              <Icon name="pending_actions" className="text-indigo-600 text-2xl mb-3" />
-              <div>
-                <p className="text-3xl font-bold text-gray-900">{pendingAnswers}</p>
-                <p className="text-xs uppercase tracking-widest text-slate-400 mt-1">Чакащи приноси</p>
-              </div>
-            </Link>
-            <div className="bg-emerald-400 rounded-2xl p-6 flex flex-col justify-between">
+          <div className="col-span-12 lg:col-span-5 flex flex-col gap-4">
+            <div className="bg-emerald-400 rounded-2xl p-6 flex flex-col justify-between flex-1">
               <Icon name="verified" className="text-emerald-900 text-2xl mb-3" />
               <div>
                 <p className="text-3xl font-bold text-emerald-900">{approvedAnswers}</p>
@@ -453,7 +445,7 @@ export default function Dashboard({
           {/* Recent contributions */}
           <div className="col-span-12 lg:col-span-4 space-y-4">
             <h3 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'Noto Serif, serif' }}>
-              Последни приноси
+              Най-нови отговори
             </h3>
 
             {recentContributions.length === 0 ? (

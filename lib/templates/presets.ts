@@ -29,14 +29,14 @@ export const templatePresets: Template[] = [
     id: 'kindergarten',
     name: 'Детска градина',
     description: 'Лексикон за детска градина — снимки, цветове, забавление.',
-    themeId: 'classic',
+    themeId: 'kindergarten',
     blocks: coreBlocks(),
   },
   {
     id: 'teens',
     name: 'Тийновете',
     description: 'Лексикон за горен курс — видеа, въпроси, анкети.',
-    themeId: 'classic',
+    themeId: 'teens',
     blocks: coreBlocks(),
   },
   // Keep 'classic' as alias for backwards-compatibility with older classes

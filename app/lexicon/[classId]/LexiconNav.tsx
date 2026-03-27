@@ -3,18 +3,22 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const NAV_ITEMS = [
-  { label: 'Класът',         icon: 'auto_stories',  exact: true,  path: ''           },
-  { label: 'Учениците',      icon: 'people',        exact: false, path: '/students'  },
-  { label: 'Нашите спомени', icon: 'photo_album',   exact: false, path: '/memories'  },
-]
+function getNavItems(themeId?: string | null) {
+  const isKinder = themeId === 'kindergarten'
+  return [
+    { label: isKinder ? 'Групата'  : 'Класът',         icon: 'auto_stories', exact: true,  path: ''          },
+    { label: 'Учениците',                               icon: 'people',       exact: false, path: '/students' },
+    { label: 'Нашите спомени',                          icon: 'photo_album',  exact: false, path: '/memories' },
+  ]
+}
 
-export function LexiconHeaderNav({ classId, basePath }: { classId: string; basePath?: string }) {
+export function LexiconHeaderNav({ classId, basePath, themeId }: { classId: string; basePath?: string; themeId?: string | null }) {
   const pathname = usePathname()
   const base = basePath ?? `/lexicon/${classId}`
+  const navItems = getNavItems(themeId)
   return (
     <nav className="flex gap-8 w-full pt-2 overflow-x-auto hide-scrollbar">
-      {NAV_ITEMS.map(item => {
+      {navItems.map(item => {
         const href = `${base}${item.path}`
         const active = item.exact ? pathname === href : !!pathname?.startsWith(href)
         return (
@@ -36,12 +40,13 @@ export function LexiconHeaderNav({ classId, basePath }: { classId: string; baseP
   )
 }
 
-export function LexiconBottomNav({ classId, basePath }: { classId: string; basePath?: string }) {
+export function LexiconBottomNav({ classId, basePath, themeId }: { classId: string; basePath?: string; themeId?: string | null }) {
   const pathname = usePathname()
   const base = basePath ?? `/lexicon/${classId}`
+  const navItems = getNavItems(themeId)
   return (
     <>
-      {NAV_ITEMS.map(item => {
+      {navItems.map(item => {
         const href = `${base}${item.path}`
         const active = item.exact ? pathname === href : !!pathname?.startsWith(href)
         return (
