@@ -1,6 +1,7 @@
 import { LexiconHeaderNav, LexiconBottomNav } from './LexiconNav'
 import { themes, defaultTheme } from '@/lib/templates/themes'
 import LexiconDevPanel from './LexiconDevPanel'
+import SchoolPattern from './SchoolPattern'
 
 interface Props {
   classId: string
@@ -13,9 +14,11 @@ interface Props {
 export default function LexiconShell({ classId, logoUrl, themeId, basePath, children }: Props) {
   const theme = (themeId && themes[themeId]) ? themes[themeId] : defaultTheme
 
+  const showPattern = !themeId || themeId === 'primary' || themeId === 'classic'
+
   return (
     <div
-      className="min-h-screen pb-32"
+      className="min-h-screen pb-32 relative"
       style={{
         fontFamily: 'Manrope, sans-serif',
         backgroundColor: 'var(--lex-bg)',
@@ -23,9 +26,10 @@ export default function LexiconShell({ classId, logoUrl, themeId, basePath, chil
         ...theme.vars,
       } as React.CSSProperties}
     >
+      {showPattern && <SchoolPattern />}
       {/* ── Sticky header ────────────────────────────────────────────── */}
       <header
-        className="flex flex-col items-center w-full pt-4 px-6 max-w-screen-xl mx-auto sticky top-0 z-40"
+        className="flex flex-col items-center w-full pt-4 px-6 max-w-screen-xl mx-auto sticky top-0 z-40 relative"
         style={{
           backgroundColor: 'color-mix(in srgb, var(--lex-bg) 82%, transparent)',
           backdropFilter: 'blur(20px)',
@@ -53,7 +57,7 @@ export default function LexiconShell({ classId, logoUrl, themeId, basePath, chil
       </header>
 
       {/* ── Page content ─────────────────────────────────────────────── */}
-      <main className="max-w-screen-xl mx-auto px-6 pt-8">
+      <main className="max-w-screen-xl mx-auto px-6 pt-8 relative z-10">
         {children}
       </main>
 
