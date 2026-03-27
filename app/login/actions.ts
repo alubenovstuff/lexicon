@@ -85,6 +85,12 @@ export async function loginModerator(prevState: State, formData: FormData): Prom
     return { error: null, redirectTo: '/admin' }
   }
 
-  // Moderator with no class yet
+  // Fall back to role stored in user_metadata at registration
+  const metaRole = authData.user.user_metadata?.role
+  if (metaRole === 'student') {
+    return { error: null, redirectTo: '/my' }
+  }
+
+  // Moderator with no class yet (or unknown role)
   return { error: null, redirectTo: '/moderator' }
 }
