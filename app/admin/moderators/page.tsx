@@ -1,9 +1,9 @@
 export const dynamic = 'force-dynamic'
 
 import { unstable_noStore as noStore } from 'next/cache'
-import Link from 'next/link'
 import { createServiceRoleClient } from '@/lib/supabase/server'
-import DeleteModeratorButton from './DeleteModeratorButton'
+import ModeratorsBulkList from './ModeratorsBulkList'
+import type { ModeratorRowData } from './ModeratorsBulkList'
 
 export default async function AdminModeratorsPage() {
   noStore()
@@ -34,15 +34,24 @@ export default async function AdminModeratorsPage() {
     studentsByClass[s.class_id] = (studentsByClass[s.class_id] ?? 0) + 1
   }
 
-  const STATUS_COLOR: Record<string, string> = {
-    draft:       'bg-gray-100 text-gray-500',
-    filling:     'bg-blue-100 text-blue-700',
-    unpublished: 'bg-amber-100 text-amber-700',
-    published:   'bg-green-100 text-green-700',
-  }
-  const STATUS_LABEL: Record<string, string> = {
-    draft: 'Чернова', filling: 'Непопълнен', unpublished: 'Непубликуван', published: 'Публикуван',
-  }
+  const moderators: ModeratorRowData[] = allUsers.map((user) => {
+    const userClasses = classesByModerator.get(user.id) ?? []
+    return {
+      id: user.id,
+      email: user.email ?? user.id,
+      createdAt: user.created_at,
+      lastSignIn: user.last_sign_in_at ?? null,
+      classes: userClasses.map(cls => ({
+        id: cls.id,
+        name: cls.name,
+        school_year: cls.school_year,
+        status: cls.status,
+        studentCount: studentsByClass[cls.id] ?? 0,
+      })),
+      totalStudents: userClasses.reduce((sum, c) => sum + (studentsByClass[c.id] ?? 0), 0),
+      publishedCount: userClasses.filter(c => c.status === 'published').length,
+    }
+  })
 
   return (
     <div>
@@ -54,82 +63,14 @@ export default async function AdminModeratorsPage() {
         <p className="text-sm text-gray-500 mt-2">{allUsers.length} регистрирани потребители</p>
       </div>
 
-      <div className="space-y-4">
-        {allUsers.map((user) => {
-          const userClasses = classesByModerator.get(user.id) ?? []
-          const totalStudents = userClasses.reduce((sum, c) => sum + (studentsByClass[c.id] ?? 0), 0)
-          const publishedCount = userClasses.filter(c => c.status === 'published').length
-          const initials = (user.email ?? '?')[0].toUpperCase()
-
-          return (
-            <div key={user.id} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-              {/* User header */}
-              <div className="flex items-center gap-4 px-6 py-5 border-b border-gray-50">
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
-                  {initials}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm">{user.email}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Регистриран: {new Date(user.created_at).toLocaleDateString('bg-BG')}
-                    {user.last_sign_in_at && (
-                      <> · Последен вход: {new Date(user.last_sign_in_at).toLocaleDateString('bg-BG')}</>
-                    )}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4 text-center flex-shrink-0">
-                  <div>
-                    <p className="text-lg font-bold text-gray-900">{userClasses.length}</p>
-                    <p className="text-xs text-gray-400">класа</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-gray-900">{totalStudents}</p>
-                    <p className="text-xs text-gray-400">деца</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-green-600">{publishedCount}</p>
-                    <p className="text-xs text-gray-400">публ.</p>
-                  </div>
-                  <DeleteModeratorButton userId={user.id} email={user.email ?? user.id} />
-                </div>
-              </div>
-
-              {/* Classes */}
-              {userClasses.length > 0 ? (
-                <div className="divide-y divide-gray-50">
-                  {userClasses.map((cls) => (
-                    <div key={cls.id} className="flex items-center gap-4 px-6 py-3 hover:bg-gray-50/50">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800">{cls.name}</p>
-                        <p className="text-xs text-gray-400">{cls.school_year}</p>
-                      </div>
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLOR[cls.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                        {STATUS_LABEL[cls.status] ?? cls.status}
-                      </span>
-                      <span className="text-xs text-gray-500 w-12 text-right">
-                        {studentsByClass[cls.id] ?? 0} деца
-                      </span>
-                      <Link href={`/admin/classes/${cls.id}/preview`}
-                        className="text-xs text-gray-400 hover:text-indigo-600 font-semibold">
-                        Превю
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="px-6 py-4 text-xs text-gray-400 italic">Няма създадени класове.</p>
-              )}
-            </div>
-          )
-        })}
-
-        {allUsers.length === 0 && (
-          <div className="bg-white border border-gray-100 rounded-2xl p-16 text-center text-gray-400">
-            <span className="material-symbols-outlined text-4xl block mb-2 text-gray-200">manage_accounts</span>
-            Няма регистрирани потребители.
-          </div>
-        )}
-      </div>
+      {allUsers.length === 0 ? (
+        <div className="bg-white border border-gray-100 rounded-2xl p-16 text-center text-gray-400">
+          <span className="material-symbols-outlined text-4xl block mb-2 text-gray-200">manage_accounts</span>
+          Няма регистрирани потребители.
+        </div>
+      ) : (
+        <ModeratorsBulkList moderators={moderators} />
+      )}
     </div>
   )
 }

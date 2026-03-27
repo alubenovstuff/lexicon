@@ -127,6 +127,14 @@ export async function adminDeleteModerator(userId: string): Promise<{ error: str
   return { error: null }
 }
 
+export async function adminDeleteModerators(userIds: string[]): Promise<{ error: string | null }> {
+  for (const id of userIds) {
+    const result = await adminDeleteModerator(id)
+    if (result.error) return result
+  }
+  return { error: null }
+}
+
 // ── System questions ──────────────────────────────────────────────────────────
 
 // ── Archive system questions ───────────────────────────────────────────────────

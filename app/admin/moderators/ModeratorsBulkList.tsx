@@ -1,0 +1,230 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { adminDeleteModerators } from '../actions'
+
+interface ModeratorClass {
+  id: string
+  name: string
+  school_year: string | null
+  status: string
+  studentCount: number
+}
+
+export interface ModeratorRowData {
+  id: string
+  email: string
+  createdAt: string
+  lastSignIn: string | null
+  classes: ModeratorClass[]
+  totalStudents: number
+  publishedCount: number
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  draft:       'bg-gray-100 text-gray-500',
+  filling:     'bg-blue-100 text-blue-700',
+  unpublished: 'bg-amber-100 text-amber-700',
+  published:   'bg-green-100 text-green-700',
+}
+const STATUS_LABEL: Record<string, string> = {
+  draft: 'Чернова', filling: 'Непопълнен', unpublished: 'Непубликуван', published: 'Публикуван',
+}
+
+export default function ModeratorsBulkList({ moderators }: { moderators: ModeratorRowData[] }) {
+  const router = useRouter()
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [confirm, setConfirm] = useState<string[] | null>(null)
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  const allSelected = moderators.length > 0 && selected.size === moderators.length
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(moderators.map(m => m.id)))
+  }
+
+  function toggle(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function confirmDelete() {
+    if (!confirm) return
+    const ids = confirm
+    startTransition(async () => {
+      const result = await adminDeleteModerators(ids)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setSelected(new Set())
+        router.refresh()
+      }
+      setConfirm(null)
+    })
+  }
+
+  return (
+    <>
+      {/* Select-all row */}
+      <div className="flex items-center gap-3 px-1 py-1 mb-1">
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={toggleAll}
+          className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
+        />
+        <span className="text-xs text-gray-400 font-medium">
+          {selected.size > 0 ? `${selected.size} избрани` : 'Избери всички'}
+        </span>
+      </div>
+
+      <div className="space-y-4">
+        {moderators.map((user) => {
+          const isSelected = selected.has(user.id)
+          const initials = (user.email ?? '?')[0].toUpperCase()
+
+          return (
+            <div
+              key={user.id}
+              className={`bg-white border rounded-2xl shadow-sm overflow-hidden transition-all ${
+                isSelected ? 'border-indigo-300 ring-1 ring-indigo-200' : 'border-gray-100'
+              }`}
+            >
+              {/* User header */}
+              <div className="flex items-center gap-4 px-6 py-5 border-b border-gray-50">
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => toggle(user.id)}
+                  className="w-4 h-4 rounded accent-indigo-600 cursor-pointer flex-shrink-0"
+                />
+                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
+                  {initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm">{user.email}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Регистриран: {new Date(user.createdAt).toLocaleDateString('bg-BG')}
+                    {user.lastSignIn && (
+                      <> · Последен вход: {new Date(user.lastSignIn).toLocaleDateString('bg-BG')}</>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-center flex-shrink-0">
+                  <div>
+                    <p className="text-lg font-bold text-gray-900">{user.classes.length}</p>
+                    <p className="text-xs text-gray-400">класа</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-gray-900">{user.totalStudents}</p>
+                    <p className="text-xs text-gray-400">деца</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-green-600">{user.publishedCount}</p>
+                    <p className="text-xs text-gray-400">публ.</p>
+                  </div>
+                  <button
+                    onClick={() => setConfirm([user.id])}
+                    title={`Изтрий ${user.email}`}
+                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                    Изтрий
+                  </button>
+                </div>
+              </div>
+
+              {/* Classes */}
+              {user.classes.length > 0 ? (
+                <div className="divide-y divide-gray-50">
+                  {user.classes.map((cls) => (
+                    <div key={cls.id} className="flex items-center gap-4 px-6 py-3 hover:bg-gray-50/50">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800">{cls.name}</p>
+                        <p className="text-xs text-gray-400">{cls.school_year}</p>
+                      </div>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLOR[cls.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                        {STATUS_LABEL[cls.status] ?? cls.status}
+                      </span>
+                      <span className="text-xs text-gray-500 w-12 text-right">
+                        {cls.studentCount} деца
+                      </span>
+                      <Link href={`/admin/classes/${cls.id}/preview`}
+                        className="text-xs text-gray-400 hover:text-indigo-600 font-semibold">
+                        Превю
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="px-6 py-4 text-xs text-gray-400 italic">Няма създадени класове.</p>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Floating bulk action bar */}
+      {selected.size > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-gray-900 text-white px-6 py-3 rounded-2xl shadow-2xl">
+          <span className="text-sm font-semibold">{selected.size} {selected.size === 1 ? 'избран' : 'избрани'}</span>
+          <div className="w-px h-5 bg-white/20" />
+          <button
+            onClick={() => setSelected(new Set())}
+            className="text-xs text-white/60 hover:text-white transition-colors"
+          >
+            Откажи
+          </button>
+          <button
+            onClick={() => setConfirm([...selected])}
+            className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-4 py-1.5 rounded-xl transition-colors"
+          >
+            <span className="material-symbols-outlined text-base">delete</span>
+            Изтрий {selected.size === 1 ? 'модератора' : `${selected.size} модератора`}
+          </button>
+        </div>
+      )}
+
+      {/* Confirm modal */}
+      {confirm && (
+        <>
+          <div className="fixed inset-0 bg-black/30 z-50 backdrop-blur-sm" onClick={() => { setConfirm(null); setError(null) }} />
+          <div className="fixed inset-x-0 bottom-0 z-[51] bg-white rounded-t-3xl shadow-2xl p-6 max-w-sm mx-auto">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+            <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-2xl mx-auto mb-4">
+              <span className="material-symbols-outlined text-red-500 text-xl">delete_forever</span>
+            </div>
+            <h3 className="font-bold text-gray-900 text-center mb-1">
+              {confirm.length === 1 ? 'Изтрий модератора?' : `Изтрий ${confirm.length} модератора?`}
+            </h3>
+            <p className="text-sm text-gray-500 text-center mb-6">
+              Всички класове, деца и отговори ще бъдат изтрити. Действието не може да се отмени.
+            </p>
+            {error && <p className="text-xs text-red-500 text-center mb-3">{error}</p>}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => { setConfirm(null); setError(null) }}
+                className="py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Отказ
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isPending}
+                className="py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors disabled:opacity-50"
+              >
+                {isPending ? 'Изтриване...' : 'Изтрий'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  )
+}
