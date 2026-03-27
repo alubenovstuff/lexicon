@@ -157,47 +157,63 @@ export default function StudentLexiconView({
   const answeredQuestions = questions.filter((q) => answerMap.has(q.id))
   const unansweredQuestions = showAllQuestions ? questions.filter((q) => !answerMap.has(q.id)) : []
 
-  const featuredQA = answeredQuestions
-    .filter((q) => q.is_featured && answerMap.get(q.id)?.text_content)
-    .map((q) => ({ question: q, answer: answerMap.get(q.id)! }))
-    .slice(0, 3)
+  // Sequential slot assignment — each question used at most once
+  const used = new Set<string>()
 
-  // Track IDs already shown in hero so we never repeat them below
-  const shownIds = new Set(featuredQA.map(({ question }) => question.id))
+  function consumeFirst(pred: (q: Question, a: Answer) => boolean) {
+    for (const q of answeredQuestions) {
+      if (used.has(q.id)) continue
+      const a = answerMap.get(q.id)!
+      if (pred(q, a)) { used.add(q.id); return { question: q, answer: a } }
+    }
+    return null
+  }
+  function consumeN(pred: (q: Question, a: Answer) => boolean, n: number) {
+    const result: Array<{ question: Question; answer: Answer }> = []
+    for (const q of answeredQuestions) {
+      if (result.length >= n) break
+      if (used.has(q.id)) continue
+      const a = answerMap.get(q.id)!
+      if (pred(q, a)) { used.add(q.id); result.push({ question: q, answer: a }) }
+    }
+    return result
+  }
+  function consumeAll() {
+    const result: Array<{ question: Question; answer: Answer }> = []
+    for (const q of answeredQuestions) {
+      if (used.has(q.id)) continue
+      used.add(q.id)
+      result.push({ question: q, answer: answerMap.get(q.id)! })
+    }
+    return result
+  }
 
-  const textQA = answeredQuestions
-    .filter((q) => { if (shownIds.has(q.id)) return false; const a = answerMap.get(q.id)!; return a.text_content && !a.media_url })
-    .map((q) => ({ question: q, answer: answerMap.get(q.id)! }))
+  // Slot 1 — Hero right: up to 3 ★ featured text items
+  const featuredQA = consumeN((q, a) => !!(q.is_featured && a.text_content), 3)
 
-  const videoQA = isPremium
-    ? answeredQuestions.filter((q) => !shownIds.has(q.id) && answerMap.get(q.id)?.media_type === 'video').map((q) => ({ question: q, answer: answerMap.get(q.id)! }))
+  // Slot 2 — Hero right fallback (no featured): up to 3 text items fill the column
+  const heroFallbackQA = featuredQA.length === 0
+    ? consumeN((_, a) => !!(a.text_content && !a.media_url), 3)
     : []
 
-  const audioQA = answeredQuestions
-    .filter((q) => !shownIds.has(q.id) && answerMap.get(q.id)?.media_type === 'audio')
-    .map((q) => ({ question: q, answer: answerMap.get(q.id)! }))
+  // Slot 3 — Row 2: first video
+  const firstVideo = isPremium ? consumeFirst((_, a) => a.media_type === 'video') : null
 
-  const imageQA = answeredQuestions
-    .filter((q) => { if (shownIds.has(q.id)) return false; const a = answerMap.get(q.id)!; return a.media_url && !a.media_type })
-    .map((q) => ({ question: q, answer: answerMap.get(q.id)! }))
+  // Slot 4 — Row 2: first audio
+  const firstAudio = consumeFirst((_, a) => a.media_type === 'audio')
 
-  const featuredText  = textQA[0] ?? null
-  const quoteText     = textQA[1] ?? textQA[0] ?? null
-  const extraText     = textQA.slice(2)
-  const firstVideo    = videoQA[0] ?? null
-  const firstAudio    = audioQA[0] ?? null
-  const extraAnswers  = [...videoQA.slice(1), ...audioQA.slice(1), ...imageQA, ...extraText]
+  // Slot 5 — Grid header blockquote (only when featured QA fills hero right)
+  const gridQuoteText = featuredQA.length > 0
+    ? consumeFirst((_, a) => !!(a.text_content && !a.media_url))
+    : null
 
-  // Also exclude from unanswered placeholders anything already shown
-  const displayedIds = new Set([
-    ...shownIds,
-    ...(featuredText ? [featuredText.question.id] : []),
-    ...(quoteText ? [quoteText.question.id] : []),
-    ...extraAnswers.map(({ question }) => question.id),
-    ...(firstVideo ? [firstVideo.question.id] : []),
-    ...(firstAudio ? [firstAudio.question.id] : []),
-  ])
-  const initials      = `${student.first_name[0]}${student.last_name[0]}`.toUpperCase()
+  // Slot 6 — Grid: wide text card
+  const featuredText = consumeFirst((_, a) => !!(a.text_content && !a.media_url))
+
+  // Slot 7 — Grid: everything else (in original question order)
+  const gridItems = consumeAll()
+
+  const initials = `${student.first_name[0]}${student.last_name[0]}`.toUpperCase()
 
   const prevNextNav = (
     <div className="flex items-center gap-4">
@@ -312,21 +328,21 @@ export default function StudentLexiconView({
                 </div>
               ) : (
                 <div className="flex flex-col gap-8 pt-4">
-                  {quoteText && (
+                  {heroFallbackQA[0] && (
                     <section className="bg-surface-container-low p-8 md:p-10 relative">
                       <div className="absolute -top-4 left-10 w-24 h-6 tape-overlay pointer-events-none" />
                       <h3 className="font-label text-xs font-bold uppercase tracking-widest text-primary mb-4">
-                        {quoteText.question.text}
+                        {heroFallbackQA[0].question.text}
                       </h3>
                       <blockquote
                         className="text-2xl md:text-3xl text-on-surface-variant leading-relaxed"
                         style={{ fontFamily: 'Noto Serif, serif', fontStyle: 'italic' }}
                       >
-                        "{quoteText.answer.text_content}"
+                        "{heroFallbackQA[0].answer.text_content}"
                       </blockquote>
                     </section>
                   )}
-                  {extraText.slice(0, 3).map(({ question, answer }) => (
+                  {heroFallbackQA.slice(1).map(({ question, answer }) => (
                     <div key={question.id} className="flex items-start gap-4">
                       <div className="p-3 bg-primary-fixed flex-shrink-0">
                         <span className="material-symbols-outlined text-primary">format_quote</span>
@@ -379,34 +395,32 @@ export default function StudentLexiconView({
         </section>
 
         {/* ── Answers grid ─────────────────────────────────────────── */}
-        {(featuredText || extraAnswers.length > 0 || unansweredQuestions.length > 0 || (featuredQA.length > 0 && quoteText)) && (
+        {(gridQuoteText || featuredText || gridItems.length > 0 || unansweredQuestions.length > 0) && (
           <section className="mb-24">
-            <h2
-              className="font-headline text-3xl font-bold text-on-surface mb-12 flex items-center gap-4"
-            >
+            <h2 className="font-headline text-3xl font-bold text-on-surface mb-12 flex items-center gap-4">
               <span className="w-8 h-px bg-primary block" />
               Това съм аз
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-              {/* quoteText goes here when the right column is taken by featuredQA */}
-              {featuredQA.length > 0 && quoteText && (
+              {/* Full-width blockquote (first unused text, shown only when featuredQA fills the hero) */}
+              {gridQuoteText && (
                 <div className="md:col-span-3 bg-surface-container-low p-8 md:p-10 relative">
                   <div className="absolute -top-4 left-10 w-24 h-6 tape-overlay pointer-events-none" />
                   <h3 className="font-label text-xs font-bold uppercase tracking-widest text-primary mb-4">
-                    {quoteText.question.text}
+                    {gridQuoteText.question.text}
                   </h3>
                   <blockquote
                     className="text-2xl md:text-3xl text-on-surface-variant leading-relaxed"
                     style={{ fontFamily: 'Noto Serif, serif', fontStyle: 'italic' }}
                   >
-                    "{quoteText.answer.text_content}"
+                    "{gridQuoteText.answer.text_content}"
                   </blockquote>
                 </div>
               )}
 
-              {/* Featured answer — wide */}
+              {/* Wide text card */}
               {featuredText && (
                 <div className="md:col-span-2 bg-surface-container-lowest p-10 relative overflow-hidden group polaroid-frame">
                   <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
@@ -421,40 +435,38 @@ export default function StudentLexiconView({
                 </div>
               )}
 
-              {/* Image answers */}
-              {imageQA.map(({ question, answer }) => (
-                <div key={question.id} className="bg-surface-container-lowest overflow-hidden polaroid-frame">
-                  <img src={answer.media_url!} alt={question.text} className="w-full h-56 object-cover" />
-                  <div className="p-4">
-                    <p className="text-xs font-bold text-primary uppercase tracking-wider">{question.text}</p>
+              {/* Remaining answers — each shown exactly once */}
+              {gridItems.map(({ question, answer }) => {
+                if (answer.media_url && !answer.media_type) {
+                  return (
+                    <div key={question.id} className="bg-surface-container-lowest overflow-hidden polaroid-frame">
+                      <img src={answer.media_url} alt={question.text} className="w-full h-56 object-cover" />
+                      <div className="p-4">
+                        <p className="text-xs font-bold text-primary uppercase tracking-wider">{question.text}</p>
+                      </div>
+                    </div>
+                  )
+                }
+                return (
+                  <div key={question.id} className="bg-surface-container-lowest p-7 polaroid-frame">
+                    <p className="text-xs font-bold uppercase tracking-widest text-primary mb-3">{question.text}</p>
+                    {answer.text_content && (
+                      <p className="text-on-surface-variant leading-relaxed">{answer.text_content}</p>
+                    )}
+                    {answer.media_url && answer.media_type === 'video' && (
+                      <video src={answer.media_url} controls className="w-full mt-2 max-h-64" preload="metadata" />
+                    )}
+                    {answer.media_url && answer.media_type === 'audio' && (
+                      <audio src={answer.media_url} controls className="w-full mt-2" preload="metadata" />
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
 
-              {/* Extra text/video/audio answers */}
-              {extraAnswers.map(({ question, answer }) => (
-                <div key={question.id} className="bg-surface-container-lowest p-7 polaroid-frame">
-                  <p className="text-xs font-bold uppercase tracking-widest text-primary mb-3">
-                    {question.text}
-                  </p>
-                  {answer.text_content && (
-                    <p className="text-on-surface-variant leading-relaxed">{answer.text_content}</p>
-                  )}
-                  {answer.media_url && answer.media_type === 'video' && (
-                    <video src={answer.media_url} controls className="w-full mt-2 max-h-64" preload="metadata" />
-                  )}
-                  {answer.media_url && answer.media_type === 'audio' && (
-                    <audio src={answer.media_url} controls className="w-full mt-2" preload="metadata" />
-                  )}
-                </div>
-              ))}
-
-              {/* Unanswered question placeholders (moderator preview) */}
-              {unansweredQuestions.filter((q) => !displayedIds.has(q.id)).map((question) => (
+              {/* Unanswered placeholders (moderator preview only) */}
+              {unansweredQuestions.map((question) => (
                 <div key={question.id} className="bg-surface-container-lowest p-7 polaroid-frame opacity-40 border-2 border-dashed border-on-surface/10">
-                  <p className="text-xs font-bold uppercase tracking-widest text-primary mb-3">
-                    {question.text}
-                  </p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-primary mb-3">{question.text}</p>
                   <p className="text-on-surface-variant/50 text-sm italic">Не е отговорено</p>
                 </div>
               ))}
