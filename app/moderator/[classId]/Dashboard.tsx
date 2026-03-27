@@ -383,7 +383,7 @@ export default function Dashboard({
         {/* Stats row */}
         <section className="grid grid-cols-12 gap-5 mb-10">
           {/* Progress */}
-          <div className="col-span-12 lg:col-span-7 bg-white rounded-2xl p-8 shadow-sm relative overflow-hidden group border border-gray-100">
+          <div className="col-span-12 lg:col-span-8 bg-white rounded-2xl p-8 shadow-sm relative overflow-hidden group border border-gray-100">
             <div className="relative z-10">
               <h3 className="text-xl font-bold text-gray-800 mb-5" style={{ fontFamily: 'Noto Serif, serif' }}>
                 Прогрес на попълване
@@ -404,7 +404,7 @@ export default function Dashboard({
           </div>
 
           {/* Quick stats */}
-          <div className="col-span-12 lg:col-span-5 flex flex-col gap-4">
+          <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
             <div className="bg-emerald-400 rounded-2xl p-6 flex flex-col justify-between flex-1">
               <Icon name="verified" className="text-emerald-900 text-2xl mb-3" />
               <div>
