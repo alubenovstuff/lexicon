@@ -20,6 +20,7 @@ interface Contribution {
 
 interface Props {
   classData: { id: string; name: string; school_year: string; status: string; school_logo_url: string | null; cover_image_url: string | null }
+  moderatorEmail: string | null
   deadline: string | null
   students: Array<{ id: string; first_name: string; last_name: string; invite_accepted_at: string | null }>
   awaitingApproval: Array<{ id: string; first_name: string; last_name: string; invite_accepted_at: string | null }>
@@ -57,7 +58,7 @@ function Icon({ name, className = '' }: { name: string; className?: string }) {
 }
 
 export default function Dashboard({
-  classData, deadline, students, awaitingApproval, pendingAnswers, pendingMessages,
+  classData, moderatorEmail, deadline, students, awaitingApproval, pendingAnswers, pendingMessages,
   approvedAnswers, hasQuestionnaire, hasLayout, events, recentContributions,
 }: Props) {
   const totalStudents = students.length
@@ -143,6 +144,7 @@ export default function Dashboard({
     { icon: 'volunteer_activism', label: 'Отговори', href: `${base}/answers` },
     { icon: 'view_quilt',   label: 'Лексикон',  href: `${base}/lexicon` },
     { icon: 'calendar_month', label: 'Събития', href: `${base}/events` },
+    { icon: 'visibility',   label: 'Превю',     href: `${base}/preview` },
     { icon: 'settings',     label: 'Настройки', href: '#', onClick: () => setEditingSettings(true) },
   ]
 
@@ -171,6 +173,7 @@ export default function Dashboard({
           <div className="overflow-hidden">
             <p className="font-bold text-sm text-indigo-900 truncate">{namePart}</p>
             <p className="text-xs text-slate-400 truncate">{classData.school_year}</p>
+            {moderatorEmail && <p className="text-xs text-slate-400 truncate mt-0.5">{moderatorEmail}</p>}
           </div>
         </div>
 
@@ -227,13 +230,6 @@ export default function Dashboard({
           >
             <Icon name="help" className="text-xl" />
             Помощен център
-          </Link>
-          <Link
-            href={`${base}/preview`}
-            className="w-full flex items-center justify-center gap-2 border border-indigo-200 text-indigo-600 py-2.5 px-4 rounded-xl font-semibold text-sm text-center hover:bg-indigo-50 transition-colors"
-          >
-            <Icon name="preview" className="text-base" />
-            Превю
           </Link>
           <Link
             href={`${base}/finalize`}

@@ -133,6 +133,7 @@ export default async function ModeratorDashboard({ params }: { params: Promise<{
   return (
     <Dashboard
       classData={classData}
+      moderatorEmail={user.email ?? null}
       deadline={classData.deadline ?? null}
       students={students ?? []}
       awaitingApproval={awaitingApproval}

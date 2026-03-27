@@ -52,8 +52,8 @@ function HeroBlock({ data }: { data: LexiconData }) {
   return (
     <section className="mb-12">
       <div className="relative overflow-hidden shadow-2xl aspect-[4/3] md:aspect-[16/7]" style={{ borderRadius: 'var(--lex-radius)' }}>
-        {(classData.superhero_image_url ?? classData.cover_image_url) ? (
-          <img src={(classData.superhero_image_url ?? classData.cover_image_url)!} alt={classData.name} className="w-full h-full object-cover" />
+        {(classData.cover_image_url ?? classData.superhero_image_url) ? (
+          <img src={(classData.cover_image_url ?? classData.superhero_image_url)!} alt={classData.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full" style={{ background: 'var(--lex-hero-grad)' }} />
         )}

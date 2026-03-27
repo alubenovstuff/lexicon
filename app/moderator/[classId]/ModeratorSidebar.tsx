@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import LogoutButton from './LogoutButton'
+import { createServerClient } from '@/lib/supabase/server'
 
 type ActiveNav =
   | 'dashboard'
@@ -35,7 +36,9 @@ const NAV_ITEMS = [
   { key: 'preview',   icon: 'visibility',    label: 'Превю',    sub: '/preview' },
 ] as const
 
-export default function ModeratorSidebar({ classId, namePart, schoolYear, logoUrl, active }: Props) {
+export default async function ModeratorSidebar({ classId, namePart, schoolYear, logoUrl, active }: Props) {
+  const supabase = createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
   const base = `/moderator/${classId}`
 
   return (
@@ -70,6 +73,7 @@ export default function ModeratorSidebar({ classId, namePart, schoolYear, logoUr
         <div className="overflow-hidden">
           <p className="font-bold text-sm text-indigo-900 truncate">{namePart}</p>
           {schoolYear && <p className="text-xs text-slate-400 truncate">{schoolYear}</p>}
+          {user?.email && <p className="text-xs text-slate-400 truncate mt-0.5">{user.email}</p>}
         </div>
       </div>
 
