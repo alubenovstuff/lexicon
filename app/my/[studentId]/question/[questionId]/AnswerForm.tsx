@@ -45,8 +45,8 @@ export default function AnswerForm({
   const [submitStatus, setSubmitStatus] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  // Start in locked view if question already has a submitted answer
-  const [editing, setEditing] = useState(answer?.status !== 'submitted')
+  // Start in locked view if question already has any content (draft or submitted)
+  const [editing, setEditing] = useState(!answer?.text_content && !answer?.media_url)
 
   // ── Video state ─────────────────────────────────────────────────────────────
   const [mediaFile, setMediaFile] = useState<File | null>(null)
@@ -203,10 +203,18 @@ export default function AnswerForm({
             Одобрен
           </div>
         )}
-        {answerStatus === 'submitted' && !editing && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
-            <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-            Изпратен за одобрение
+        {!editing && (answer?.text_content || answer?.media_url) && (
+          <div className={`text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2 ${
+            answerStatus === 'approved'
+              ? 'bg-green-50 border border-green-200 text-green-700'
+              : answerStatus === 'submitted'
+              ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+              : 'bg-gray-50 border border-gray-200 text-gray-600'
+          }`}>
+            <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+              {answerStatus === 'approved' ? 'verified' : 'check_circle'}
+            </span>
+            {answerStatus === 'approved' ? 'Одобрен' : answerStatus === 'submitted' ? 'Изпратен за одобрение' : 'Записан'}
           </div>
         )}
         {answer?.status === 'draft' && answer.moderator_note && !isLocked && (
