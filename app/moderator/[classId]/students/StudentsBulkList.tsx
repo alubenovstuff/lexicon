@@ -29,10 +29,11 @@ export default function StudentsBulkList({
   students: StudentRowData[]
 }) {
   const router = useRouter()
-  const [selected, setSelected]     = useState<Set<string>>(new Set())
-  const [confirm, setConfirm]       = useState<string[] | null>(null) // ids to confirm-delete
-  const [isPending, startTransition] = useTransition()
-  const [error, setError]           = useState<string | null>(null)
+  const [selected, setSelected]       = useState<Set<string>>(new Set())
+  const [expanded, setExpanded]       = useState<Set<string>>(new Set())
+  const [confirm, setConfirm]         = useState<string[] | null>(null)
+  const [isPending, startTransition]  = useTransition()
+  const [error, setError]             = useState<string | null>(null)
 
   const allSelected = students.length > 0 && selected.size === students.length
 
@@ -48,13 +49,16 @@ export default function StudentsBulkList({
     })
   }
 
-  function handleDeleteSelected() {
-    setConfirm([...selected])
+  function toggleExpand(id: string) {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
   }
 
-  function handleDeleteOne(id: string) {
-    setConfirm([id])
-  }
+  function handleDeleteSelected() { setConfirm([...selected]) }
+  function handleDeleteOne(id: string) { setConfirm([id]) }
 
   function confirmDelete() {
     if (!confirm) return
@@ -92,25 +96,26 @@ export default function StudentsBulkList({
         {students.map(student => {
           const progress = student.total > 0 ? Math.round((student.approved / student.total) * 100) : 0
           const isSelected = selected.has(student.id)
+          const isExpanded = expanded.has(student.id)
 
           const checks = [
-            { icon: 'photo_camera', ok: !!student.photo_url,      label: 'Снимка' },
-            { icon: 'edit_note',    ok: student.approved >= 2,     label: student.approved >= 2 ? `${student.approved} отговора` : `${student.approved}/2 отговора` },
-            { icon: 'chat',         ok: student.messages >= 1,     label: student.messages >= 1 ? `${student.messages} послания` : 'Без послания' },
+            { icon: 'photo_camera', ok: !!student.photo_url,    label: 'Снимка' },
+            { icon: 'edit_note',    ok: student.approved >= 2,  label: student.approved >= 2 ? `${student.approved} отговора` : `${student.approved}/2 отговора` },
+            { icon: 'chat',         ok: student.messages >= 1,  label: student.messages >= 1 ? `${student.messages} послания` : 'Без послание' },
           ]
 
           const statusBadge = student.statusBadge === 'registered' ? (
-            <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-green-100 text-green-700">
-              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>how_to_reg</span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }}>how_to_reg</span>
               Регистриран
             </span>
           ) : student.statusBadge === 'invited' ? (
-            <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-700">
-              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>mail</span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }}>mail</span>
               Поканен
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-100 text-gray-500">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
               Без покана
             </span>
           )
@@ -118,13 +123,14 @@ export default function StudentsBulkList({
           return (
             <div
               key={student.id}
-              className={`bg-white border rounded-2xl px-5 py-4 shadow-sm transition-all ${
+              className={`bg-white border rounded-2xl shadow-sm transition-all overflow-hidden ${
                 isSelected
                   ? 'border-indigo-300 ring-1 ring-indigo-200'
-                  : 'border-gray-100 hover:shadow-md'
+                  : 'border-gray-100'
               }`}
             >
-              <div className="flex items-center gap-4">
+              {/* ── Header row (always visible) ────────────────────────── */}
+              <div className="flex items-center gap-3 px-4 py-3">
                 {/* Checkbox */}
                 <input
                   type="checkbox"
@@ -138,75 +144,90 @@ export default function StudentsBulkList({
                   <img
                     src={student.photo_url}
                     alt={`${student.first_name} ${student.last_name}`}
-                    className="w-11 h-11 rounded-full object-cover flex-shrink-0 border border-gray-100"
+                    className="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-gray-100"
                   />
                 ) : (
-                  <div className="w-11 h-11 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0">
                     {student.initials}
                   </div>
                 )}
 
-                {/* Name + email */}
+                {/* Name + status */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm">
+                  <p className="font-semibold text-gray-900 text-sm leading-tight">
                     {student.first_name} {student.last_name}
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5 truncate">
-                    {student.parent_email ?? 'Без имейл на родителя'}
-                  </p>
+                  <div className="mt-0.5">{statusBadge}</div>
                 </div>
 
-                {/* Status */}
-                <div className="flex-shrink-0">{statusBadge}</div>
-
-                {/* Progress */}
-                <div className="flex-shrink-0 w-32 hidden lg:block">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-400">Отговори</span>
-                    <span className="text-xs font-semibold text-gray-600">{student.approved}/{student.total}</span>
-                  </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
-                  </div>
-                </div>
-
-                {/* Completeness indicators */}
-                <div className="flex-shrink-0 flex items-center gap-1.5">
+                {/* Check dots */}
+                <div className="flex items-center gap-1 flex-shrink-0">
                   {checks.map(c => (
                     <span
                       key={c.icon}
                       title={c.label}
-                      className={`flex items-center justify-center w-7 h-7 rounded-full ${c.ok ? 'bg-green-100 text-green-600' : 'bg-red-50 text-red-400'}`}
+                      className={`flex items-center justify-center w-6 h-6 rounded-full ${c.ok ? 'bg-green-100 text-green-600' : 'bg-red-50 text-red-400'}`}
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 13 }}>
                         {c.ok ? 'check' : c.icon}
                       </span>
                     </span>
                   ))}
-                  {student.allDone && (
-                    <span className="ml-1 text-xs font-bold text-green-600 uppercase tracking-wider">Готов</span>
-                  )}
                 </div>
 
-                {/* Row actions */}
-                <div className="flex-shrink-0 flex items-center gap-3">
-                  <StudentActions
-                    studentId={student.id}
-                    parentEmail={student.parent_email}
-                    inviteAccepted={!!student.invite_accepted_at}
-                    allDone={student.allDone}
-                    classId={classId}
-                    inviteToken={student.invite_token}
-                  />
-                  <button
-                    onClick={() => handleDeleteOne(student.id)}
-                    title="Изтрий"
-                    className="text-gray-300 hover:text-red-500 transition-colors ml-1"
-                  >
-                    <span className="material-symbols-outlined text-base">delete</span>
-                  </button>
-                </div>
+                {/* Expand toggle */}
+                <button
+                  onClick={() => toggleExpand(student.id)}
+                  className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  <span className={`material-symbols-outlined text-base transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                    expand_more
+                  </span>
+                </button>
               </div>
+
+              {/* ── Expanded details ────────────────────────────────────── */}
+              {isExpanded && (
+                <div className="border-t border-gray-50 px-4 py-3 bg-gray-50/50 space-y-3">
+                  {/* Email */}
+                  <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-gray-300" style={{ fontSize: 14 }}>mail</span>
+                    {student.parent_email ?? <span className="italic text-gray-400">Без имейл на родителя</span>}
+                  </p>
+
+                  {/* Progress bar */}
+                  {student.total > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-400">Отговори</span>
+                        <span className="text-xs font-semibold text-gray-600">{student.approved}/{student.total}</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions row */}
+                  <div className="flex items-center justify-between gap-2">
+                    <StudentActions
+                      studentId={student.id}
+                      parentEmail={student.parent_email}
+                      inviteAccepted={!!student.invite_accepted_at}
+                      allDone={student.allDone}
+                      classId={classId}
+                      inviteToken={student.invite_token}
+                    />
+                    <button
+                      onClick={() => handleDeleteOne(student.id)}
+                      title="Изтрий"
+                      className="flex-shrink-0 text-gray-300 hover:text-red-500 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-base">delete</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )
         })}

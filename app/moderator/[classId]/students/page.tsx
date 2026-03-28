@@ -115,7 +115,7 @@ export default async function StudentsPage({ params }: { params: Promise<{ class
             </div>
             <Link
               href={`/moderator/${classId}/students/new`}
-              className="flex-shrink-0 flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow transition-colors"
+              className="self-start flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow transition-colors"
             >
               <span className="material-symbols-outlined text-base">person_add</span>
               Добави дете
@@ -123,66 +123,68 @@ export default async function StudentsPage({ params }: { params: Promise<{ class
           </div>
 
           {/* Stats row */}
-          <div className="flex gap-4 mt-6 flex-wrap">
-            <div className="bg-white border border-gray-100 rounded-xl px-5 py-3 flex items-center gap-3 shadow-sm">
-              <span className="material-symbols-outlined text-slate-400 text-xl">group</span>
+          <div className="grid grid-cols-3 gap-2 mt-6 sm:flex sm:flex-wrap sm:gap-4">
+            <div className="bg-white border border-gray-100 rounded-xl px-3 sm:px-5 py-3 flex items-center gap-2 sm:gap-3 shadow-sm">
+              <span className="material-symbols-outlined text-slate-400 text-lg sm:text-xl">group</span>
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">Добавени</p>
-                <p className="text-lg font-bold text-gray-800">
+                <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider">Добавени</p>
+                <p className="text-base sm:text-lg font-bold text-gray-800">
                   {studentList.length}{expectedCount !== null ? ` / ${expectedCount}` : ''}
                 </p>
               </div>
             </div>
-            <div className="bg-white border border-green-100 rounded-xl px-5 py-3 flex items-center gap-3 shadow-sm">
-              <span className="material-symbols-outlined text-green-500 text-xl">how_to_reg</span>
+            <div className="bg-white border border-green-100 rounded-xl px-3 sm:px-5 py-3 flex items-center gap-2 sm:gap-3 shadow-sm">
+              <span className="material-symbols-outlined text-green-500 text-lg sm:text-xl">how_to_reg</span>
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">Регистрирани</p>
-                <p className="text-lg font-bold text-green-600">{registeredCount}</p>
+                <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider">Регистрирани</p>
+                <p className="text-base sm:text-lg font-bold text-green-600">{registeredCount}</p>
               </div>
             </div>
-            <div className="bg-white border border-amber-100 rounded-xl px-5 py-3 flex items-center gap-3 shadow-sm">
-              <span className="material-symbols-outlined text-amber-400 text-xl">mail</span>
+            <div className="bg-white border border-amber-100 rounded-xl px-3 sm:px-5 py-3 flex items-center gap-2 sm:gap-3 shadow-sm">
+              <span className="material-symbols-outlined text-amber-400 text-lg sm:text-xl">mail</span>
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">Поканени</p>
-                <p className="text-lg font-bold text-amber-600">{invitedCount}</p>
+                <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider">Поканени</p>
+                <p className="text-base sm:text-lg font-bold text-amber-600">{invitedCount}</p>
               </div>
             </div>
             {noInviteCount > 0 && (
-              <div className="bg-white border border-gray-100 rounded-xl px-5 py-3 flex items-center gap-3 shadow-sm">
-                <span className="material-symbols-outlined text-gray-300 text-xl">person_off</span>
+              <div className="bg-white border border-gray-100 rounded-xl px-3 sm:px-5 py-3 flex items-center gap-2 sm:gap-3 shadow-sm">
+                <span className="material-symbols-outlined text-gray-300 text-lg sm:text-xl">person_off</span>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wider">Без покана</p>
-                  <p className="text-lg font-bold text-gray-400">{noInviteCount}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider">Без покана</p>
+                  <p className="text-base sm:text-lg font-bold text-gray-400">{noInviteCount}</p>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Missing students warning */}
-          {missingCount !== null && missingCount > 0 && (
-            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-              <span className="material-symbols-outlined text-base">person_add</span>
-              Липсват още {missingCount} {missingCount === 1 ? 'дете' : 'деца'} за добавяне
-            </div>
-          )}
-
-          {/* Deadline countdown */}
-          {deadlineDays !== null && (
-            <div className={`mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${
-              deadlineDays < 0
-                ? 'bg-red-100 text-red-700'
-                : deadlineDays <= 7
-                  ? 'bg-red-100 text-red-700'
-                  : deadlineDays <= 14
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-gray-100 text-gray-600'
-            }`}>
-              <span className="material-symbols-outlined text-base">timer</span>
-              {deadlineDays < 0
-                ? 'Срокът изтече'
-                : deadlineDays === 0
-                  ? 'Днес е крайният срок!'
-                  : `${deadlineDays} дни до крайния срок`}
+          {/* Missing students warning + Deadline countdown */}
+          {(missingCount !== null && missingCount > 0 || deadlineDays !== null) && (
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2 mt-4">
+              {missingCount !== null && missingCount > 0 && (
+                <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                  <span className="material-symbols-outlined text-base">person_add</span>
+                  Липсват още {missingCount} {missingCount === 1 ? 'дете' : 'деца'} за добавяне
+                </div>
+              )}
+              {deadlineDays !== null && (
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${
+                  deadlineDays < 0
+                    ? 'bg-red-100 text-red-700'
+                    : deadlineDays <= 7
+                      ? 'bg-red-100 text-red-700'
+                      : deadlineDays <= 14
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-gray-100 text-gray-600'
+                }`}>
+                  <span className="material-symbols-outlined text-base">timer</span>
+                  {deadlineDays < 0
+                    ? 'Срокът изтече'
+                    : deadlineDays === 0
+                      ? 'Днес е крайният срок!'
+                      : `${deadlineDays} дни до крайния срок`}
+                </div>
+              )}
             </div>
           )}
 

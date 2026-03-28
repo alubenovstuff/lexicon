@@ -192,27 +192,29 @@ export default async function LexiconPage({
         {/* Page header */}
         <div className="mb-8">
           <p className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-1">Лексикон</p>
-          <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'Noto Serif, serif' }}>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900" style={{ fontFamily: 'Noto Serif, serif' }}>
             Настройки на лексикона
           </h1>
         </div>
 
         {/* Tab nav */}
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-8 w-fit">
-          {TABS.map(t => (
-            <Link
-              key={t.key}
-              href={`/moderator/${classId}/lexicon?tab=${t.key}`}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                tab === t.key
-                  ? 'bg-white text-indigo-700 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <span className="material-symbols-outlined text-base">{t.icon}</span>
-              {t.label}
-            </Link>
-          ))}
+        <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 mb-8 hide-scrollbar">
+          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit min-w-full sm:min-w-0">
+            {TABS.map(t => (
+              <Link
+                key={t.key}
+                href={`/moderator/${classId}/lexicon?tab=${t.key}`}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
+                  tab === t.key
+                    ? 'bg-white text-indigo-700 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <span className="material-symbols-outlined text-base">{t.icon}</span>
+                {t.label}
+              </Link>
+            ))}
+          </div>
         </div>
 
         {/* ── Шаблон ──────────────────────────────────────────────────────── */}
@@ -231,7 +233,7 @@ export default async function LexiconPage({
                   <form action={applyTemplate.bind(null, classId, preset.id as QuestionPreset)}>
                     <button
                       type="submit"
-                      className="w-full text-left p-6 flex items-start gap-5 hover:bg-gray-50 transition-colors group"
+                      className="w-full text-left p-4 sm:p-6 flex items-start gap-4 sm:gap-5 hover:bg-gray-50 transition-colors group"
                     >
                       <span className="text-4xl leading-none mt-0.5">{meta.emoji}</span>
                       <div className="flex-1 min-w-0">
@@ -251,7 +253,7 @@ export default async function LexiconPage({
                       <span className="material-symbols-outlined text-gray-300 group-hover:text-indigo-500 transition-colors mt-1 flex-shrink-0">arrow_forward</span>
                     </button>
                   </form>
-                  <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-between">
+                  <div className="border-t border-gray-100 px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
                     <span className="text-xs text-gray-400">
                       {isActive ? 'Приложен към твоя лексикон' : 'Щракни върху картата, за да приложиш'}
                     </span>

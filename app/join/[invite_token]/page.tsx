@@ -42,10 +42,10 @@ export default async function JoinPage({ params }: Props) {
     if (name) moderatorName = name
   }
 
-  // If already logged in → link student and go straight to wizard
+  // If already logged in as a parent (not the class moderator) → link & go straight to wizard
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (user) {
+  if (user && classData?.moderator_id !== user.id) {
     await admin
       .from('students')
       .update({
