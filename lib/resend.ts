@@ -4,7 +4,9 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 const FROM = 'Един неразделен клас <noreply@resend.dev>'
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? ''
+const BASE_URL =
+  process.env.NEXT_PUBLIC_APP_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
 export async function sendParentInviteEmail(to: string, studentName: string, inviteToken: string) {
   const inviteUrl = `${BASE_URL}/join/${inviteToken}`

@@ -16,7 +16,9 @@ export async function sendJoinMagicLink(
   if (!student) return { error: 'Невалиден линк.' }
 
   const supabase = createServerClient()
-  const siteUrl  = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const siteUrl  =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
   const { error } = await supabase.auth.signInWithOtp({
     email: email.trim(),
