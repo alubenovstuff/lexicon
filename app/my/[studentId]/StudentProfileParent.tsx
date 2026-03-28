@@ -381,7 +381,7 @@ export default function StudentProfileParent({
               celebration
             </span>
             <div>
-              <p className="text-sm font-bold text-emerald-800 mb-0.5">Въпросникът е финализиран и одобрен!</p>
+              <p className="text-sm font-bold text-emerald-800 mb-0.5">Въпросникът е одобрен от модератора</p>
               <p className="text-xs text-emerald-700 leading-relaxed">
                 Благодарим ти, {student.first_name}! Ти помогна за създаването на незабравим спомен!
               </p>
