@@ -12,6 +12,7 @@ interface Question {
 interface Props {
   classId: string
   questions: Question[]
+  onFinalize?: () => void
 }
 
 function VoiceQuestionCard({
@@ -84,7 +85,7 @@ function VoiceQuestionCard({
   )
 }
 
-export default function ClassVoiceSection({ classId, questions }: Props) {
+export default function ClassVoiceSection({ classId, questions, onFinalize }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [submittedIds, setSubmittedIds] = useState<Set<string>>(new Set())
 
@@ -128,13 +129,21 @@ export default function ClassVoiceSection({ classId, questions }: Props) {
         >
           ← Назад
         </button>
-        <button
-          onClick={() => setCurrentIndex(i => Math.min(questions.length - 1, i + 1))}
-          disabled={currentIndex === questions.length - 1}
-          className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-40 transition-colors shadow-sm"
-        >
-          Напред →
-        </button>
+        {currentIndex < questions.length - 1 ? (
+          <button
+            onClick={() => setCurrentIndex(i => i + 1)}
+            className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            Напред →
+          </button>
+        ) : (
+          <button
+            onClick={onFinalize}
+            className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+          >
+            Финализирай секцията ✓
+          </button>
+        )}
       </div>
     </div>
   )

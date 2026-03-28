@@ -20,9 +20,10 @@ interface Event {
 interface Props {
   studentId: string
   events: Event[]
+  onFinalize?: () => void
 }
 
-export default function MemoriesSection({ studentId, events }: Props) {
+export default function MemoriesSection({ studentId, events, onFinalize }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0)
 
   if (events.length === 0) {
@@ -56,13 +57,21 @@ export default function MemoriesSection({ studentId, events }: Props) {
         >
           ← Назад
         </button>
-        <button
-          onClick={() => setCurrentIndex(i => Math.min(events.length - 1, i + 1))}
-          disabled={currentIndex === events.length - 1}
-          className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-40 transition-colors shadow-sm"
-        >
-          Напред →
-        </button>
+        {currentIndex < events.length - 1 ? (
+          <button
+            onClick={() => setCurrentIndex(i => i + 1)}
+            className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            Напред →
+          </button>
+        ) : (
+          <button
+            onClick={onFinalize}
+            className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+          >
+            Финализирай секцията ✓
+          </button>
+        )}
       </div>
     </div>
   )

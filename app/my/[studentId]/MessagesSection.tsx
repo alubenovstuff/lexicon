@@ -20,6 +20,7 @@ interface Props {
   authorStudentId: string
   classmates: Classmate[]
   sentMessages: SentMessage[]
+  onFinalize?: () => void
 }
 
 function ClassmateMessageCard({
@@ -119,7 +120,7 @@ function ClassmateMessageCard({
   )
 }
 
-export default function MessagesSection({ authorStudentId, classmates, sentMessages }: Props) {
+export default function MessagesSection({ authorStudentId, classmates, sentMessages, onFinalize }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const messageMap = new Map(sentMessages.map(m => [m.recipient_student_id, m]))
 
@@ -157,13 +158,21 @@ export default function MessagesSection({ authorStudentId, classmates, sentMessa
         >
           ← Назад
         </button>
-        <button
-          onClick={() => setCurrentIndex(i => Math.min(classmates.length - 1, i + 1))}
-          disabled={currentIndex === classmates.length - 1}
-          className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-40 transition-colors shadow-sm"
-        >
-          Напред →
-        </button>
+        {currentIndex < classmates.length - 1 ? (
+          <button
+            onClick={() => setCurrentIndex(i => i + 1)}
+            className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            Напред →
+          </button>
+        ) : (
+          <button
+            onClick={onFinalize}
+            className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+          >
+            Финализирай секцията ✓
+          </button>
+        )}
       </div>
     </div>
   )

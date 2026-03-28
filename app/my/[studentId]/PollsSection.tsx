@@ -21,9 +21,10 @@ interface Props {
   classmates: Classmate[]
   voterStudentId: string
   existingVotes: Record<string, string>
+  onFinalize?: () => void
 }
 
-export default function PollsSection({ polls, classmates, voterStudentId, existingVotes }: Props) {
+export default function PollsSection({ polls, classmates, voterStudentId, existingVotes, onFinalize }: Props) {
   const [votes, setVotes] = useState<Record<string, string>>(existingVotes)
   const [isPending, startTransition] = useTransition()
   const [pendingPollId, setPendingPollId] = useState<string | null>(null)
@@ -161,13 +162,21 @@ export default function PollsSection({ polls, classmates, voterStudentId, existi
         >
           ← Назад
         </button>
-        <button
-          onClick={() => setCurrentIndex(i => Math.min(polls.length - 1, i + 1))}
-          disabled={currentIndex === polls.length - 1}
-          className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-40 transition-colors shadow-sm"
-        >
-          Напред →
-        </button>
+        {currentIndex < polls.length - 1 ? (
+          <button
+            onClick={() => setCurrentIndex(i => i + 1)}
+            className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            Напред →
+          </button>
+        ) : (
+          <button
+            onClick={onFinalize}
+            className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+          >
+            Финализирай секцията ✓
+          </button>
+        )}
       </div>
     </div>
   )

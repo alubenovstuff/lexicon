@@ -482,6 +482,7 @@ export default function StudentProfileParent({
               classmates={classmates}
               voterStudentId={student.id}
               existingVotes={existingVotes}
+              onFinalize={() => toggle('polls')}
             />
           </Section>
         )}
@@ -551,7 +552,7 @@ export default function StudentProfileParent({
             onToggle={() => toggle('voice')}
             accentColor="amber"
           >
-            <ClassVoiceSection classId={classId} questions={classVoiceQuestions} />
+            <ClassVoiceSection classId={classId} questions={classVoiceQuestions} onFinalize={() => toggle('voice')} />
           </Section>
         )}
 
@@ -572,6 +573,7 @@ export default function StudentProfileParent({
               authorStudentId={student.id}
               classmates={classmates}
               sentMessages={sentMessages}
+              onFinalize={() => toggle('messages')}
             />
           </Section>
         )}
@@ -619,7 +621,7 @@ export default function StudentProfileParent({
             onToggle={() => toggle('memories')}
             accentColor="teal"
           >
-            <MemoriesSection studentId={student.id} events={events} />
+            <MemoriesSection studentId={student.id} events={events} onFinalize={() => toggle('memories')} />
           </Section>
         )}
 
