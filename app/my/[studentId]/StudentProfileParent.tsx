@@ -388,13 +388,13 @@ export default function StudentProfileParent({
             </div>
           </div>
         ) : submitted ? (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-start gap-3">
-            <span className="material-symbols-outlined text-emerald-500 text-xl mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
+          <div className="bg-orange-50 border border-orange-200 rounded-2xl px-5 py-4 flex items-start gap-3">
+            <span className="material-symbols-outlined text-orange-500 text-xl mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
               check_circle
             </span>
             <div>
-              <p className="text-sm font-bold text-emerald-800 mb-0.5">Изпратено за одобрение</p>
-              <p className="text-xs text-emerald-700 leading-relaxed">
+              <p className="text-sm font-bold text-orange-800 mb-0.5">Изпратено за одобрение</p>
+              <p className="text-xs text-orange-700 leading-relaxed">
                 Благодарим ти, {student.first_name}! {moderatorName ? `${moderatorName} ще прегледа отговорите.` : 'Модераторът ще прегледа отговорите.'}
                 {deadlineFormatted ? ` Крайният срок е ${deadlineFormatted}.` : ''}
               </p>
