@@ -564,7 +564,7 @@ export default function StudentProfileParent({
             id="messages"
             icon="favorite"
             title="Послания до съучениците"
-            description={`Напишете лично пожелание от ${student.first_name} до всеки съученик. Посланията ще се появят на личните им страници след одобрение от модератора.`}
+            description={`Напишете лично пожелание от ${student.first_name} до останалите. Не е задължително да оставяте послание за всички в лексикона. Посланията ще се появят на личните им страници след одобрение от модератора.`}
             status={messagesStatus}
             statusLabel={messagesLabel}
             open={openSection === 'messages'}
