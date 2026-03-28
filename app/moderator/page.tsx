@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server'
 import LogoutButton from '@/app/moderator/[classId]/LogoutButton'
+import MobileMenuWrapper from '@/app/moderator/[classId]/MobileMenuWrapper'
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   draft:     { label: 'Настройка',   color: 'bg-gray-100 text-gray-600' },
@@ -43,30 +44,32 @@ export default async function ModeratorIndexPage() {
     <div className="min-h-screen bg-[#f4f3f2] flex" style={{ fontFamily: 'Manrope, sans-serif' }}>
 
       {/* Sidebar */}
-      <aside className="w-64 fixed left-0 top-0 h-screen bg-[#f4f3f2] flex flex-col p-4 z-50 border-r border-black/5">
-        <div className="px-2 py-4">
-          <h1 className="text-indigo-900 text-xl font-bold tracking-tight" style={{ fontFamily: 'Noto Serif, serif' }}>
-            Един неразделен клас
-          </h1>
-          <p className="text-xs text-slate-400 uppercase tracking-widest mt-1">Admin Panel</p>
-        </div>
-
-        <div className="flex items-center gap-3 px-2 py-3 bg-white/60 rounded-xl mb-4">
-          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
-            <span className="material-symbols-outlined text-xl">person</span>
+      <MobileMenuWrapper namePart="Моите класове">
+        <aside className="w-64 h-screen bg-[#f4f3f2] flex flex-col p-4 overflow-y-auto border-r border-black/5" style={{ fontFamily: 'Manrope, sans-serif' }}>
+          <div className="px-2 py-4">
+            <h1 className="text-indigo-900 text-xl font-bold tracking-tight" style={{ fontFamily: 'Noto Serif, serif' }}>
+              Един неразделен клас
+            </h1>
+            <p className="text-xs text-slate-400 uppercase tracking-widest mt-1">Admin Panel</p>
           </div>
-          <div className="overflow-hidden">
-            <p className="font-bold text-sm text-indigo-900 truncate">Моите класове</p>
-            <p className="text-xs text-slate-400 truncate mt-0.5">{user.email}</p>
+
+          <div className="flex items-center gap-3 px-2 py-3 bg-white/60 rounded-xl mb-4">
+            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
+              <span className="material-symbols-outlined text-xl">person</span>
+            </div>
+            <div className="overflow-hidden">
+              <p className="font-bold text-sm text-indigo-900 truncate">Моите класове</p>
+              <p className="text-xs text-slate-400 truncate mt-0.5">{user.email}</p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex-1" />
+          <div className="flex-1" />
 
-        <div className="pt-4 space-y-2">
-          <LogoutButton />
-        </div>
-      </aside>
+          <div className="pt-4 space-y-2">
+            <LogoutButton />
+          </div>
+        </aside>
+      </MobileMenuWrapper>
 
       {/* Main */}
       <main className="md:ml-64 flex-1 p-4 pt-20 md:p-8 lg:p-12">

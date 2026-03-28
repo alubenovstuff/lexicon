@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 interface Props {
   children: React.ReactNode
   namePart: string
-  finalizeHref: string
+  finalizeHref?: string
 }
 
 export default function MobileMenuWrapper({ children, namePart, finalizeHref }: Props) {
@@ -35,12 +35,14 @@ export default function MobileMenuWrapper({ children, namePart, finalizeHref }: 
           {namePart}
         </span>
 
-        <Link
-          href={finalizeHref}
-          className="flex-shrink-0 text-xs font-bold bg-indigo-600 text-white px-3 py-2 rounded-xl whitespace-nowrap"
-        >
-          Финализирай
-        </Link>
+        {finalizeHref ? (
+          <Link
+            href={finalizeHref}
+            className="flex-shrink-0 text-xs font-bold bg-indigo-600 text-white px-3 py-2 rounded-xl whitespace-nowrap"
+          >
+            Финализирай
+          </Link>
+        ) : <div className="w-10" />}
       </div>
 
       {/* ── Backdrop ───────────────────────────────────────────────────── */}
