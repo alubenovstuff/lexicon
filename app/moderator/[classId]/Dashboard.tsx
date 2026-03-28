@@ -293,44 +293,42 @@ export default function Dashboard({
       <main className="md:ml-64 flex-1 p-4 pt-20 md:p-8 lg:p-12">
 
         {/* Header */}
-        <header className="mb-10 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-          <div>
-            <nav className="flex gap-2 text-xs text-slate-400 uppercase tracking-widest mb-2">
-              <span>Admin Panel</span>
-              <span>/</span>
-              <span className="text-indigo-600 font-bold">Табло</span>
-            </nav>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900" style={{ fontFamily: 'Noto Serif, serif' }}>
-              {classData.name}
-            </h2>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="bg-white px-4 py-2 rounded-lg flex items-center gap-2 border border-gray-100">
-              <Icon name="calendar_today" className="text-amber-600 text-base" />
+        <header className="mb-10">
+          <nav className="flex gap-2 text-xs text-slate-400 uppercase tracking-widest mb-2">
+            <span>Admin Panel</span>
+            <span>/</span>
+            <span className="text-indigo-600 font-bold">Табло</span>
+          </nav>
+          <h2 className="text-2xl md:text-4xl font-bold text-gray-900 break-words" style={{ fontFamily: 'Noto Serif, serif' }}>
+            {classData.name}
+          </h2>
+          <div className="flex items-center gap-2 flex-wrap mt-3">
+            <div className="bg-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-gray-100">
+              <Icon name="calendar_today" className="text-amber-600 text-sm" />
               <span className="text-sm font-semibold text-gray-700">{classData.school_year}</span>
             </div>
             {(() => {
               const info = deadlineInfo(deadline)
               return info ? (
-                <div className={`px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold ${info.color}`}>
-                  <Icon name="timer" className="text-base" />
+                <div className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-semibold ${info.color}`}>
+                  <Icon name="timer" className="text-sm" />
                   {info.label}
                 </div>
               ) : (
                 <button
                   onClick={() => setEditingSettings(true)}
-                  className="px-4 py-2 rounded-lg flex items-center gap-2 border border-dashed border-gray-300 text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors text-sm"
+                  className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-dashed border-gray-300 text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors text-sm"
                 >
-                  <Icon name="timer" className="text-base" />
-                  Добави краен срок
+                  <Icon name="timer" className="text-sm" />
+                  Краен срок
                 </button>
               )
             })()}
             <button
               onClick={() => setEditingSettings(true)}
-              className="bg-white px-3 py-2 rounded-lg border border-gray-100 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 transition-colors text-sm flex items-center gap-1.5"
+              className="bg-white px-3 py-1.5 rounded-lg border border-gray-100 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 transition-colors text-sm flex items-center gap-1.5"
             >
-              <Icon name="edit" className="text-base" />
+              <Icon name="edit" className="text-sm" />
               Редактирай
             </button>
           </div>
@@ -435,10 +433,10 @@ export default function Dashboard({
               <h3 className="text-xl font-bold text-gray-800 mb-5" style={{ fontFamily: 'Noto Serif, serif' }}>
                 Прогрес на попълване
               </h3>
-              <div className="flex items-end justify-between mb-3">
-                <span className="text-6xl font-bold text-indigo-600">{progressPercent}%</span>
+              <div className="flex items-end justify-between mb-3 gap-3">
+                <span className="text-5xl md:text-6xl font-bold text-indigo-600">{progressPercent}%</span>
                 {remaining > 0 && (
-                  <span className="text-sm text-slate-400 uppercase tracking-tight">
+                  <span className="text-xs md:text-sm text-slate-400 uppercase tracking-tight text-right">
                     Остават {remaining} профила
                   </span>
                 )}
