@@ -29,9 +29,16 @@ export default async function MyChildPage({ params }: Props) {
 
   const { data: classData } = await admin
     .from('classes')
-    .select('id, status, teacher_name, deadline')
+    .select('id, status, teacher_name, deadline, moderator_id')
     .eq('id', student.class_id)
     .single()
+
+  let moderatorName: string | null = classData?.teacher_name ?? null
+  if (classData?.moderator_id) {
+    const { data: modUser } = await admin.auth.admin.getUserById(classData.moderator_id)
+    const meta = modUser?.user?.user_metadata
+    moderatorName = (meta?.full_name || meta?.name || null) as string | null
+  }
 
   // Only fetch questions the moderator explicitly added to this class
   const { data: allClassQuestions } = await admin
@@ -125,7 +132,7 @@ export default async function MyChildPage({ params }: Props) {
       polls={polls ?? []}
       existingVotes={existingVotes}
       events={events}
-      moderatorName={classData?.teacher_name ?? null}
+      moderatorName={moderatorName}
       deadline={classData?.deadline ?? null}
     />
   )
