@@ -417,8 +417,13 @@ export default function WizardClient({
               </h3>
               <p className="text-sm text-gray-500 mt-2 leading-relaxed">
                 Въпросникът е подаден към{' '}
-                <strong className="text-gray-700">{moderatorName ?? 'учителя'}</strong>.
-                Можете да продължите по-късно.
+                <strong className="text-gray-700">{moderatorName ?? 'модератора'}</strong>.
+                Можете да се върнете към попълване по всяко време.
+                {deadline && (
+                  <> Крайният срок е <strong className="text-gray-700">
+                    {new Date(deadline).toLocaleDateString('bg-BG')}
+                  </strong>.</>
+                )}
               </p>
             </div>
             <div className="flex flex-col gap-2 pt-2">
