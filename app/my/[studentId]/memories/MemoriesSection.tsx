@@ -23,6 +23,8 @@ interface Props {
 }
 
 export default function MemoriesSection({ studentId, events }: Props) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+
   if (events.length === 0) {
     return (
       <div className="py-12 text-center">
@@ -32,11 +34,36 @@ export default function MemoriesSection({ studentId, events }: Props) {
     )
   }
 
+  const event = events[currentIndex]
+  const commentedCount = events.filter(e => e.myComment).length
+
   return (
-    <div className="space-y-5">
-      {events.map(event => (
-        <EventCommentCard key={event.id} event={event} studentId={studentId} />
-      ))}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between text-xs text-gray-400">
+        <span>{currentIndex + 1} от {events.length}</span>
+        {commentedCount > 0 && (
+          <span className="text-emerald-600 font-medium">{commentedCount} / {events.length} коментара</span>
+        )}
+      </div>
+
+      <EventCommentCard key={event.id} event={event} studentId={studentId} />
+
+      <div className="flex gap-3 pt-2">
+        <button
+          onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
+          disabled={currentIndex === 0}
+          className="flex-none px-5 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-500 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+        >
+          ← Назад
+        </button>
+        <button
+          onClick={() => setCurrentIndex(i => Math.min(events.length - 1, i + 1))}
+          disabled={currentIndex === events.length - 1}
+          className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-40 transition-colors shadow-sm"
+        >
+          Напред →
+        </button>
+      </div>
     </div>
   )
 }

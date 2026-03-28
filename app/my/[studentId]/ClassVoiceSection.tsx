@@ -14,19 +14,20 @@ interface Props {
   questions: Question[]
 }
 
-function ClassVoiceQuestion({ classId, question }: { classId: string; question: Question }) {
-  const storageKey = `class_voice_${classId}_${question.id}`
+function VoiceQuestionCard({
+  classId,
+  question,
+  submitted,
+  onSubmitted,
+}: {
+  classId: string
+  question: Question
+  submitted: boolean
+  onSubmitted: () => void
+}) {
   const [text, setText] = useState('')
-  const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Check localStorage on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined' && localStorage.getItem(storageKey)) {
-      setSubmitted(true)
-    }
-  }, [storageKey])
 
   async function handleSubmit() {
     setError(null)
@@ -36,29 +37,33 @@ function ClassVoiceQuestion({ classId, question }: { classId: string; question: 
     if (result.error) {
       setError(result.error)
     } else {
-      localStorage.setItem(storageKey, '1')
-      setSubmitted(true)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`class_voice_${classId}_${question.id}`, '1')
+      }
+      onSubmitted()
     }
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <p className="text-sm font-medium text-gray-800 mb-3">{question.text}</p>
+    <div className="bg-[#faf9f8] rounded-2xl p-5 space-y-3">
+      <p className="font-semibold text-gray-900" style={{ fontFamily: 'Noto Serif, serif' }}>
+        {question.text}
+      </p>
 
       {submitted ? (
-        <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
-          <span className="w-2 h-2 bg-green-500 rounded-full" />
+        <div className="flex items-center gap-2 text-sm text-emerald-600 font-medium py-2">
+          <span className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0" />
           Изпратено анонимно ✓
         </div>
       ) : (
         <div className="space-y-2">
           <textarea
-            rows={3}
+            rows={4}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={e => setText(e.target.value)}
             placeholder="Вашият анонимен отговор…"
             maxLength={400}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none bg-white"
           />
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-400">{text.length}/400</span>
@@ -67,7 +72,7 @@ function ClassVoiceQuestion({ classId, question }: { classId: string; question: 
               <button
                 onClick={handleSubmit}
                 disabled={submitting || !text.trim()}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors"
               >
                 {submitting ? 'Изпращане...' : 'Изпрати'}
               </button>
@@ -80,13 +85,57 @@ function ClassVoiceQuestion({ classId, question }: { classId: string; question: 
 }
 
 export default function ClassVoiceSection({ classId, questions }: Props) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [submittedIds, setSubmittedIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const initial = new Set<string>()
+    for (const q of questions) {
+      if (localStorage.getItem(`class_voice_${classId}_${q.id}`)) {
+        initial.add(q.id)
+      }
+    }
+    setSubmittedIds(initial)
+  }, [classId, questions])
+
   if (questions.length === 0) return null
 
+  const question = questions[currentIndex]
+
   return (
-    <div className="space-y-3">
-      {questions.map((q) => (
-        <ClassVoiceQuestion key={q.id} classId={classId} question={q} />
-      ))}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between text-xs text-gray-400">
+        <span>{currentIndex + 1} от {questions.length}</span>
+        {submittedIds.size > 0 && (
+          <span className="text-emerald-600 font-medium">{submittedIds.size} / {questions.length} изпратени</span>
+        )}
+      </div>
+
+      <VoiceQuestionCard
+        key={question.id}
+        classId={classId}
+        question={question}
+        submitted={submittedIds.has(question.id)}
+        onSubmitted={() => setSubmittedIds(prev => new Set([...prev, question.id]))}
+      />
+
+      <div className="flex gap-3 pt-2">
+        <button
+          onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
+          disabled={currentIndex === 0}
+          className="flex-none px-5 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-500 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+        >
+          ← Назад
+        </button>
+        <button
+          onClick={() => setCurrentIndex(i => Math.min(questions.length - 1, i + 1))}
+          disabled={currentIndex === questions.length - 1}
+          className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-40 transition-colors shadow-sm"
+        >
+          Напред →
+        </button>
+      </div>
     </div>
   )
 }

@@ -22,17 +22,7 @@ interface Props {
   sentMessages: SentMessage[]
 }
 
-function MessageStatusBadge({ status }: { status: string }) {
-  if (status === 'approved') {
-    return <span className="text-xs text-green-600 font-medium">Одобрено ✓</span>
-  }
-  if (status === 'pending') {
-    return <span className="text-xs text-yellow-600 font-medium">Чака одобрение</span>
-  }
-  return <span className="text-xs text-red-500 font-medium">Върнато</span>
-}
-
-function ClassmateRow({
+function ClassmateMessageCard({
   classmate,
   authorStudentId,
   existingMessage,
@@ -41,15 +31,16 @@ function ClassmateRow({
   authorStudentId: string
   existingMessage: SentMessage | undefined
 }) {
-  const [expanded, setExpanded] = useState(false)
-  const [text, setText] = useState(existingMessage?.status === 'pending' ? existingMessage.content : '')
+  const [text, setText] = useState(
+    existingMessage?.status === 'pending' || existingMessage?.status === 'rejected'
+      ? existingMessage.content
+      : ''
+  )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
 
-  const currentStatus = existingMessage?.status
-  const canEdit = !currentStatus || currentStatus === 'rejected'
-  const isPending = currentStatus === 'pending'
+  const currentStatus = sent ? 'pending' : existingMessage?.status
   const isApproved = currentStatus === 'approved'
 
   async function handleSubmit() {
@@ -61,69 +52,65 @@ function ClassmateRow({
       setError(result.error)
     } else {
       setSent(true)
-      setExpanded(false)
     }
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <button
-        onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          {classmate.photo_url ? (
-            <img
-              src={classmate.photo_url}
-              alt={`${classmate.first_name} ${classmate.last_name}`}
-              className="w-8 h-8 rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-sm font-semibold">
-              {classmate.first_name.charAt(0)}
-            </div>
+    <div className="bg-[#faf9f8] rounded-2xl p-5 space-y-4">
+      {/* Classmate header */}
+      <div className="flex items-center gap-3">
+        {classmate.photo_url ? (
+          <img
+            src={classmate.photo_url}
+            alt={`${classmate.first_name} ${classmate.last_name}`}
+            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-sm font-semibold flex-shrink-0">
+            {classmate.first_name.charAt(0)}
+          </div>
+        )}
+        <div>
+          <p className="text-sm font-bold text-gray-800">{classmate.first_name} {classmate.last_name}</p>
+          {currentStatus === 'approved' && (
+            <span className="text-xs text-emerald-600 font-medium">Одобрено ✓</span>
           )}
-          <span className="text-sm font-medium text-gray-800">
-            {classmate.first_name} {classmate.last_name}
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          {(sent || currentStatus) && (
-            <MessageStatusBadge status={sent ? 'pending' : currentStatus!} />
-          )}
-          {!isApproved && (
-            <span className={`text-gray-400 text-sm transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}>
-              ↓
-            </span>
+          {currentStatus === 'pending' && (
+            <span className="text-xs text-amber-600 font-medium">Чака одобрение</span>
           )}
         </div>
-      </button>
+      </div>
 
-      {expanded && (
-        <div className="border-t border-gray-100 px-4 py-4">
-          {isApproved ? (
-            <p className="text-sm text-gray-500">Посланието е одобрено и не може да се редактира.</p>
+      {isApproved ? (
+        <div className="bg-white rounded-xl px-4 py-3 border border-gray-100">
+          <p className="text-sm text-gray-600 italic">„{existingMessage?.content}"</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <textarea
+            rows={3}
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder={`Напишете послание до ${classmate.first_name}…`}
+            maxLength={300}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none bg-white"
+          />
+          {sent ? (
+            <div className="flex items-center gap-2 text-sm text-emerald-600 font-medium py-1">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0" />
+              Изпратено за одобрение ✓
+            </div>
           ) : (
-            <div className="space-y-3">
-              <textarea
-                rows={3}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={`Напишете послание до ${classmate.first_name}…`}
-                maxLength={300}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
-              />
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">{text.length}/300</span>
-                {error && <span className="text-xs text-red-500">{error}</span>}
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting || !text.trim()}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? 'Изпращане...' : isPending ? 'Обнови' : 'Изпрати'}
-                </button>
-              </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-400">{text.length}/300</span>
+              {error && <span className="text-xs text-red-500">{error}</span>}
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || !text.trim()}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              >
+                {submitting ? 'Изпращане...' : existingMessage?.status === 'pending' ? 'Обнови' : 'Изпрати'}
+              </button>
             </div>
           )}
         </div>
@@ -133,7 +120,8 @@ function ClassmateRow({
 }
 
 export default function MessagesSection({ authorStudentId, classmates, sentMessages }: Props) {
-  const messageMap = new Map(sentMessages.map((m) => [m.recipient_student_id, m]))
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const messageMap = new Map(sentMessages.map(m => [m.recipient_student_id, m]))
 
   if (classmates.length === 0) {
     return (
@@ -143,16 +131,40 @@ export default function MessagesSection({ authorStudentId, classmates, sentMessa
     )
   }
 
+  const classmate = classmates[currentIndex]
+
   return (
-    <div className="space-y-2">
-      {classmates.map((classmate) => (
-        <ClassmateRow
-          key={classmate.id}
-          classmate={classmate}
-          authorStudentId={authorStudentId}
-          existingMessage={messageMap.get(classmate.id)}
-        />
-      ))}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between text-xs text-gray-400">
+        <span>{currentIndex + 1} от {classmates.length}</span>
+        {sentMessages.length > 0 && (
+          <span className="text-emerald-600 font-medium">{sentMessages.length} / {classmates.length} послания</span>
+        )}
+      </div>
+
+      <ClassmateMessageCard
+        key={classmate.id}
+        classmate={classmate}
+        authorStudentId={authorStudentId}
+        existingMessage={messageMap.get(classmate.id)}
+      />
+
+      <div className="flex gap-3 pt-2">
+        <button
+          onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
+          disabled={currentIndex === 0}
+          className="flex-none px-5 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-500 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+        >
+          ← Назад
+        </button>
+        <button
+          onClick={() => setCurrentIndex(i => Math.min(classmates.length - 1, i + 1))}
+          disabled={currentIndex === classmates.length - 1}
+          className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-40 transition-colors shadow-sm"
+        >
+          Напред →
+        </button>
+      </div>
     </div>
   )
 }

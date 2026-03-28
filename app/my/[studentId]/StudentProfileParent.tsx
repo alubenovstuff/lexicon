@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { createBrowserClient } from '@supabase/ssr'
 import { submitAllDrafts } from './actions'
 import MessagesSection from './MessagesSection'
 import PhotoUpload from './PhotoUpload'
@@ -219,22 +220,33 @@ export default function StudentProfileParent({
 
   // ── Overall progress ────────────────────────────────────────────────────────
 
-  // voice section is localStorage-based — exclude from trackable progress
-  const TRACKED_SECTION_IDS = [
+  const memoriesStatus: SectionStatus =
+    events.length === 0 ? 'done' :
+    events.every(e => e.myComment) ? 'done' :
+    events.some(e => e.myComment) ? 'partial' : 'todo'
+
+  const SECTION_IDS = [
     'photo',
     'personal',
     ...(polls.length > 0 ? ['polls'] : []),
     ...(betterTogetherQuestions.length > 0 ? ['better_together'] : []),
     ...(videoQuestions.length > 0 ? ['video'] : []),
-    'messages',
-    ...(superheroQuestions.length > 0 ? ['superhero'] : []),
-  ]
-
-  const SECTION_IDS = [
-    ...TRACKED_SECTION_IDS,
     ...(classVoiceQuestions.length > 0 ? ['voice'] : []),
+    ...(classmates.length > 0 ? ['messages'] : []),
+    ...(superheroQuestions.length > 0 ? ['superhero'] : []),
     ...(events.length > 0 ? ['memories'] : []),
   ]
+
+  // Voice is localStorage-only — read on mount
+  const [voiceStatus, setVoiceStatus] = useState<SectionStatus>('todo')
+  useEffect(() => {
+    if (classVoiceQuestions.length === 0) { setVoiceStatus('done'); return }
+    const allDone = classVoiceQuestions.every(q =>
+      typeof window !== 'undefined' && !!localStorage.getItem(`class_voice_${classId}_${q.id}`)
+    )
+    setVoiceStatus(allDone ? 'done' : 'todo')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const sectionStatusMap: Record<string, SectionStatus> = {
     photo: photoStatus,
@@ -242,13 +254,14 @@ export default function StudentProfileParent({
     polls: pollsStatus,
     better_together: questionsSectionStatus(betterTogetherQuestions),
     video: questionsSectionStatus(videoQuestions),
-    voice: 'todo',
+    voice: voiceStatus,
     messages: messagesStatus,
     superhero: questionsSectionStatus(superheroQuestions),
+    memories: memoriesStatus,
   }
 
-  const doneCount = TRACKED_SECTION_IDS.filter(id => sectionStatusMap[id] === 'done').length
-  const totalSections = TRACKED_SECTION_IDS.length
+  const doneCount = SECTION_IDS.filter(id => sectionStatusMap[id] === 'done').length
+  const totalSections = SECTION_IDS.length
   const progressPercent = totalSections > 0 ? (doneCount / totalSections) * 100 : 0
 
   // ── Persist open section across sessions ────────────────────────────────────
@@ -280,6 +293,15 @@ export default function StudentProfileParent({
   }
 
   const hasDrafts = answers.some(a => a.status === 'draft')
+
+  async function handleLogout() {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
 
   return (
     <div className="min-h-screen bg-[#f4f3f2]" style={{ fontFamily: 'Manrope, sans-serif' }}>
@@ -316,13 +338,13 @@ export default function StudentProfileParent({
               <span className="material-symbols-outlined text-sm">visibility</span>
               Преглед
             </Link>
-            <Link
-              href={`/my/${student.id}/wizard`}
-              className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-red-600 bg-gray-100 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
             >
-              <span className="material-symbols-outlined text-sm">edit</span>
-              Редактирай
-            </Link>
+              <span className="material-symbols-outlined text-sm">logout</span>
+              Изход
+            </button>
           </div>
         </div>
       </div>
