@@ -307,7 +307,14 @@ export default function AnswerForm({
               Следващ
               <span className="material-symbols-outlined text-base">arrow_forward</span>
             </Link>
-          ) : <span />}
+          ) : (
+            <Link
+              href={`/my/${studentId}`}
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors shadow-sm"
+            >
+              Финализирай секцията ✓
+            </Link>
+          )}
         </div>
 
       </div>
