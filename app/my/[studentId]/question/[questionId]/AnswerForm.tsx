@@ -136,16 +136,14 @@ export default function AnswerForm({
   const answerStatus = submitStatus ?? answer?.status
   const isLocked = answerStatus === 'approved'
 
-  // Flush any unsaved draft then navigate — prevents race condition where
-  // the profile page re-renders before saveDraft completes in the DB.
+  // Flush any unsaved draft then hard-navigate — full reload bypasses
+  // Next.js Router Cache so the profile page always reads fresh DB data.
   async function navigateTo(url: string) {
     if (!isVideo && textValue !== lastSavedRef.current) {
       if (debounceRef.current) clearTimeout(debounceRef.current)
       await saveDraft(studentId, question.id, textValue)
-      lastSavedRef.current = textValue
     }
-    router.push(url)
-    router.refresh()
+    window.location.href = url
   }
 
   return (
