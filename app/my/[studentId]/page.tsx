@@ -110,7 +110,10 @@ export default async function MyChildPage({ params }: Props) {
 
   return (
     <StudentProfileParent
-      questionnaireSubmitted={student.questionnaire_submitted ?? false}
+      questionnaireSubmitted={
+        (student.questionnaire_submitted ?? false) &&
+        !(answers ?? []).some(a => a.status === 'draft')
+      }
       student={student}
       personalQuestions={personalQuestions}
       classQuestions={classQuestions}
