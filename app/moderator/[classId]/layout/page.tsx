@@ -53,15 +53,33 @@ export default async function LayoutPage({ params }: { params: Promise<{ classId
   const savedBlocks = cls.layout as Block[] | null
   const initialBlocks: Block[] = savedBlocks?.length ? savedBlocks : defaultTemplate.blocks
 
+  // Back-fill voice_display for questions that predate migration 017.
+  // Matches defaultSeed.ts: order_index 0-1 → barchart, rest → wordcloud.
+  const voiceQsRaw = voiceQsRes.data ?? []
+  const nullVoiceQs = voiceQsRaw.filter(q => q.voice_display === null)
+  if (nullVoiceQs.length > 0) {
+    await Promise.all(nullVoiceQs.map(q =>
+      admin.from('questions').update({
+        voice_display: q.order_index <= 1 ? 'barchart' : 'wordcloud',
+      }).eq('id', q.id)
+    ))
+    // Patch in-memory too so the editor gets the correct values immediately
+    for (const q of voiceQsRaw) {
+      if (q.voice_display === null) {
+        q.voice_display = q.order_index <= 1 ? 'barchart' : 'wordcloud'
+      }
+    }
+  }
+
   const assets: LayoutAssets = {
     questions: (questionsRes.data ?? []).map(q => ({ id: q.id, label: q.text, type: q.type })),
-    voiceQuestions: (voiceQsRes.data ?? []).map(q => ({
+    voiceQuestions: voiceQsRaw.map(q => ({
       id: q.id,
       label: q.text,
       description: q.description ?? null,
       type: q.type,
       max_length: q.max_length ?? null,
-      voice_display: (q.voice_display as 'wordcloud' | 'barchart' | null) ?? 'wordcloud',
+      voice_display: (q.voice_display as 'wordcloud' | 'barchart') ?? 'wordcloud',
       order_index: q.order_index ?? 0,
     })),
     polls: (pollsRes.data ?? []).map(p => ({ id: p.id, label: p.question })),

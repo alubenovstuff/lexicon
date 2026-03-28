@@ -49,8 +49,8 @@ function pickerOptions(type: BlockType, assets: LayoutAssets): { id: string; lab
   switch (type) {
     case 'question':
     case 'photo_gallery':  return assets.questions
-    case 'class_voice':
-    case 'subjects_bar':   return assets.voiceQuestions
+    case 'class_voice':    return assets.voiceQuestions.filter(q => q.voice_display !== 'barchart')
+    case 'subjects_bar':   return assets.voiceQuestions.filter(q => q.voice_display === 'barchart')
     case 'poll':           return assets.polls
     default:               return []
   }

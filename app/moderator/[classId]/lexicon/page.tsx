@@ -64,7 +64,7 @@ export default async function LexiconPage({
 
   const { data: classData } = await admin
     .from('classes')
-    .select('id, name, school_year, school_logo_url, template_id')
+    .select('id, name, school_year, school_logo_url, template_id, layout')
     .eq('id', classId)
     .eq('moderator_id', user.id)
     .single()
@@ -81,10 +81,11 @@ export default async function LexiconPage({
   let systemQuestions: any[] = []
   let customQuestions: any[] = []
   if (tab === 'questions') {
+    const preset = classData.template_id ?? 'primary'
     const [sysRes, cusRes] = await Promise.all([
       admin.from('questions')
         .select('id, text, type, allows_text, allows_media, max_length, order_index, description, voice_display, is_featured')
-        .is('class_id', null).eq('is_system', true).order('order_index'),
+        .is('class_id', null).eq('is_system', true).eq('preset', preset).order('order_index'),
       admin.from('questions')
         .select('id, text, type, allows_text, allows_media, max_length, order_index, description, voice_display, is_featured')
         .eq('class_id', classId).eq('is_system', false).order('order_index'),
@@ -97,7 +98,38 @@ export default async function LexiconPage({
       max_length: q.max_length ?? null,
     }))
     systemQuestions = normalise(sysRes.data)
-    customQuestions = normalise(cusRes.data)
+
+    // Deduplicate custom questions by text — keep lowest order_index, delete the rest
+    const allCustom = normalise(cusRes.data)
+    const firstByText = new Map<string, any>()
+    for (const q of allCustom) {
+      if (!firstByText.has(q.text)) firstByText.set(q.text, q)
+    }
+    const toDelete = allCustom.filter(q => firstByText.get(q.text).id !== q.id).map(q => q.id)
+    customQuestions = allCustom.filter(q => !toDelete.includes(q.id))
+
+    if (toDelete.length > 0) {
+      await admin.from('answers').delete().in('question_id', toDelete)
+      await admin.from('class_voice_answers').delete().in('question_id', toDelete)
+      await admin.from('questions').delete().in('id', toDelete)
+
+      // Patch layout blocks that reference deleted IDs → replace with kept ID for same text
+      const deletedToKept = new Map(toDelete.map(id => {
+        const deleted = allCustom.find(q => q.id === id)!
+        return [id, firstByText.get(deleted.text).id as string]
+      }))
+      const currentLayout = (classData.layout as any[] | null) ?? []
+      const patched = currentLayout.map((b: any) => {
+        const qid = b.config?.questionId as string | undefined
+        if (qid && deletedToKept.has(qid)) {
+          return { ...b, config: { ...b.config, questionId: deletedToKept.get(qid) } }
+        }
+        return b
+      })
+      if (patched.some((b: any, i: number) => b !== currentLayout[i])) {
+        await admin.from('classes').update({ layout: patched }).eq('id', classId)
+      }
+    }
   }
 
   // Polls tab
@@ -193,31 +225,46 @@ export default async function LexiconPage({
               const meta = PRESET_META[preset.id]
               const isActive = classData.template_id === preset.id
               return (
-                <form key={preset.id} action={applyTemplate.bind(null, classId, preset.id as QuestionPreset)}>
-                  <button
-                    type="submit"
-                    className={`w-full text-left bg-white border-2 rounded-2xl p-6 flex items-start gap-5 hover:border-indigo-400 hover:shadow-md transition-all group ${
-                      isActive ? 'border-indigo-500 shadow-sm' : 'border-gray-200'
-                    }`}
-                  >
-                    <span className="text-4xl leading-none mt-0.5">{meta.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-gray-900 text-base">{preset.label}</span>
-                        {isActive && (
-                          <span className="text-xs font-semibold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Текущ</span>
-                        )}
+                <div key={preset.id} className={`bg-white border-2 rounded-2xl overflow-hidden transition-all ${
+                  isActive ? 'border-indigo-500 shadow-sm' : 'border-gray-200'
+                }`}>
+                  <form action={applyTemplate.bind(null, classId, preset.id as QuestionPreset)}>
+                    <button
+                      type="submit"
+                      className="w-full text-left p-6 flex items-start gap-5 hover:bg-gray-50 transition-colors group"
+                    >
+                      <span className="text-4xl leading-none mt-0.5">{meta.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-gray-900 text-base">{preset.label}</span>
+                          {isActive && (
+                            <span className="text-xs font-semibold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Текущ</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500 mb-3">{meta.description}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {meta.examples.map(ex => (
+                            <span key={ex} className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{ex}</span>
+                          ))}
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-500 mb-3">{meta.description}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {meta.examples.map(ex => (
-                          <span key={ex} className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{ex}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <span className="material-symbols-outlined text-gray-300 group-hover:text-indigo-500 transition-colors mt-1 flex-shrink-0">arrow_forward</span>
-                  </button>
-                </form>
+                      <span className="material-symbols-outlined text-gray-300 group-hover:text-indigo-500 transition-colors mt-1 flex-shrink-0">arrow_forward</span>
+                    </button>
+                  </form>
+                  <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-between">
+                    <span className="text-xs text-gray-400">
+                      {isActive ? 'Приложен към твоя лексикон' : 'Щракни върху картата, за да приложиш'}
+                    </span>
+                    <Link
+                      href={`/moderator/${classId}/preview`}
+                      target="_blank"
+                      className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-sm">visibility</span>
+                      Прегледай лексикона
+                    </Link>
+                  </div>
+                </div>
               )
             })}
             <div className="pt-2">

@@ -42,7 +42,7 @@ const VOICE_DISPLAY_UPDATES: Record<number, 'barchart' | 'wordcloud'> = {
 const FEATURED_INDEXES = new Set([6, 7, 8])
 
 /** Default polls */
-const DEFAULT_POLLS = [
+export const DEFAULT_POLLS = [
   { question: 'Кой ще стане президент?',          order_index: 0 },
   { question: 'Кой е бъдеща поп-звезда?',         order_index: 1 },
   { question: 'Кой е винаги готов да помогне?',   order_index: 2 },
@@ -72,8 +72,13 @@ export async function seedDefaultClass(
     .eq('preset', preset)
     .order('order_index')
 
-  const questionsToSeed = (presetQs && presetQs.length > 0)
-    ? presetQs
+  // Deduplicate by text in case migrations created duplicate system questions
+  const uniquePresetQs = presetQs && presetQs.length > 0
+    ? [...new Map(presetQs.map(q => [q.text, q])).values()]
+    : null
+
+  const questionsToSeed = uniquePresetQs && uniquePresetQs.length > 0
+    ? uniquePresetQs
     : DEFAULT_QUESTIONS.map((q, i) => ({
         ...q,
         voice_display: (VOICE_DISPLAY_UPDATES as Record<number, string>)[q.order_index] ?? null,
@@ -95,7 +100,7 @@ export async function seedDefaultClass(
       class_id: classId,
       is_system: false,
     })))
-    .select('id, type, order_index')
+    .select('id, type, order_index, voice_display')
 
   if (qErr || !insertedQs) return { blocks: [], error: 'Грешка при създаване на въпросите.' }
 
@@ -107,27 +112,11 @@ export async function seedDefaultClass(
 
   if (pollErr || !insertedPolls) return { blocks: [], error: 'Грешка при създаване на анкетите.' }
 
-  const polls = [...insertedPolls].sort((a, b) => a.order_index - b.order_index)
-
-  // ── Build layout ───────────────────────────────────────────────────────
-  const qs = [...insertedQs].sort((a, b) => a.order_index - b.order_index)
-  const byIdx = new Map(qs.map(q => [q.order_index, q]))
-  const favSubjectQ    = byIdx.get(0)  // "Най-любимият ми предмет"
-  const hardSubjectQ   = byIdx.get(1)  // "А най-трудният е"
-  const classDescQ     = byIdx.get(2)  // "Какъв е нашият клас?"
-  const recessQ        = byIdx.get(3)  // "В междучасията най-често"
-  const teacherPowerQ  = byIdx.get(4)  // "Каква суперсила има класният/класната?"
-
-  const blocks: Block[] = [
-    blk('hero'),
-    ...(favSubjectQ   ? [blk('subjects_bar', { questionId: favSubjectQ.id   })] : []),
-    ...(hardSubjectQ  ? [blk('subjects_bar', { questionId: hardSubjectQ.id  })] : []),
-    blk('polls_grid', { pollIds: polls.map(p => p.id) }),
-    ...(classDescQ    ? [blk('class_voice',  { questionId: classDescQ.id    })] : []),
-    ...(recessQ       ? [blk('class_voice',  { questionId: recessQ.id       })] : []),
-    ...(teacherPowerQ ? [blk('class_voice',  { questionId: teacherPowerQ.id })] : []),
-    blk('events', { limit: 20, style: 'photo_grid' }),
-  ]
+  // ── Build layout ────────────────────────────────────────────────────────
+  const blocks = buildLayoutFromQuestions(
+    insertedQs,
+    [...insertedPolls].sort((a, b) => a.order_index - b.order_index),
+  )
 
   return { blocks, error: null }
 }
@@ -135,4 +124,34 @@ export async function seedDefaultClass(
 /** Questions to show students in the wizard (personal + video only; class_voice answered implicitly) */
 export function getWizardQuestionTypes(): string[] {
   return ['video', 'personal']
+}
+
+/**
+ * Build the default layout blocks from an already-existing set of class questions + polls.
+ * Used when questions were already seeded but the layout needs to be (re-)wired.
+ */
+export function buildLayoutFromQuestions(
+  questions: { id: string; type: string; order_index: number; voice_display?: string | null }[],
+  polls: { id: string; order_index: number }[],
+): Block[] {
+  const voiceQs = questions
+    .filter(q => q.type === 'class_voice')
+    .sort((a, b) => a.order_index - b.order_index)
+
+  // Split by voice_display; fall back to order_index heuristic if null
+  const barchartQs  = voiceQs.filter(q => (q.voice_display ?? (q.order_index <= 1 ? 'barchart' : 'wordcloud')) === 'barchart')
+  const wordcloudQs = voiceQs.filter(q => (q.voice_display ?? (q.order_index <= 1 ? 'barchart' : 'wordcloud')) !== 'barchart')
+
+  const sortedPolls = [...polls].sort((a, b) => a.order_index - b.order_index)
+
+  return [
+    blk('hero'),
+    ...(barchartQs[0]  ? [blk('subjects_bar', { questionId: barchartQs[0].id  })] : []),
+    ...(barchartQs[1]  ? [blk('subjects_bar', { questionId: barchartQs[1].id  })] : []),
+    ...(sortedPolls.length > 0 ? [blk('polls_grid', { pollIds: sortedPolls.map(p => p.id) })] : []),
+    ...(wordcloudQs[0] ? [blk('class_voice',  { questionId: wordcloudQs[0].id })] : []),
+    ...(wordcloudQs[1] ? [blk('class_voice',  { questionId: wordcloudQs[1].id })] : []),
+    ...(wordcloudQs[2] ? [blk('class_voice',  { questionId: wordcloudQs[2].id })] : []),
+    blk('events', { limit: 20, style: 'photo_grid' }),
+  ]
 }

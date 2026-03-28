@@ -4,7 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { seedDefaultClass } from '@/lib/templates/defaultSeed'
+import { seedDefaultClass, buildLayoutFromQuestions, DEFAULT_POLLS } from '@/lib/templates/defaultSeed'
 
 // ─── Avatar configuration ──────────────────────────────────────────────────────
 // Set AVATARS_DIR to an absolute path on your machine that contains portrait
@@ -396,7 +396,7 @@ export async function seedDummyData(
     //    Only re-seed if there are no questions yet.
     const { data: existingQs } = await admin
       .from('questions')
-      .select('id, text, type, allows_text')
+      .select('id, text, type, allows_text, voice_display, order_index')
       .eq('class_id', classId)
       .eq('is_system', false)
 
@@ -404,15 +404,55 @@ export async function seedDummyData(
 
     if (questions.length === 0) {
       // Class was created without seedDefaultClass → seed it now
-      const { error: seedErr } = await seedDefaultClass(classId, admin)
+      const { blocks: newBlocks, error: seedErr } = await seedDefaultClass(classId, admin)
       if (seedErr) return { error: seedErr }
-
+      if (newBlocks.length > 0) {
+        await admin.from('classes').update({ layout: newBlocks }).eq('id', classId)
+      }
       const { data: freshQs } = await admin
         .from('questions')
-        .select('id, text, type, allows_text')
+        .select('id, text, type, allows_text, voice_display, order_index')
         .eq('class_id', classId)
         .eq('is_system', false)
       questions = freshQs ?? []
+    } else {
+      // Questions exist — deduplicate by text (keep lowest order_index, delete rest + their answers)
+      const seenTexts = new Map<string, string>() // text → kept id
+      const toDelete: string[] = []
+      for (const q of [...questions].sort((a, b) => a.order_index - b.order_index)) {
+        if (seenTexts.has(q.text)) {
+          toDelete.push(q.id)
+        } else {
+          seenTexts.set(q.text, q.id)
+        }
+      }
+      if (toDelete.length > 0) {
+        await admin.from('answers').delete().in('question_id', toDelete)
+        await admin.from('class_voice_answers').delete().in('question_id', toDelete)
+        await admin.from('questions').delete().in('id', toDelete)
+        questions = questions.filter(q => !toDelete.includes(q.id))
+      }
+
+      // Ensure polls exist — create defaults if missing
+      const { data: existingPolls } = await admin
+        .from('class_polls')
+        .select('id, order_index')
+        .eq('class_id', classId)
+        .order('order_index')
+      let polls = existingPolls ?? []
+      if (polls.length === 0) {
+        const { data: newPolls } = await admin
+          .from('class_polls')
+          .insert(DEFAULT_POLLS.map(p => ({ ...p, class_id: classId })))
+          .select('id, order_index')
+        polls = newPolls ?? []
+      }
+
+      // Always rebuild layout from current (deduped) questions + polls
+      const layout = buildLayoutFromQuestions(questions, polls)
+      if (layout.length > 0) {
+        await admin.from('classes').update({ layout }).eq('id', classId)
+      }
     }
 
     // 1b. Ensure featured questions are marked is_featured (idempotent)
@@ -531,13 +571,35 @@ export async function seedDummyData(
     }
 
     // 4. Class voice answers
+    // Determine which VOICE_POOLS key to use, falling back by voice_display type
+    const BARCHART_FALLBACK_POOLS = [
+      VOICE_POOLS['Най-любимият ми предмет в училище е'],
+      VOICE_POOLS['А най-трудният е'],
+    ]
+    const WORDCLOUD_FALLBACK_POOLS = [
+      VOICE_POOLS['Какъв е нашият клас? Опиши го с две или три думи'],
+      VOICE_POOLS['В междучасията най-често:'],
+      VOICE_POOLS['Каква суперсила има класният/класната?'],
+    ]
+    let barchartFallbackIdx = 0
+    let wordcloudFallbackIdx = 0
+
     const voiceQs = questions.filter(q => q.type === 'class_voice')
     const voiceRows = voiceQs.flatMap(q => {
-      const pool = shuffled(VOICE_POOLS[q.text] ?? ['Дъми отговор.'])
+      let pool = VOICE_POOLS[q.text]
+      if (!pool) {
+        const display = (q.voice_display as string | null) ?? ((q.order_index ?? 99) <= 1 ? 'barchart' : 'wordcloud')
+        if (display === 'barchart') {
+          pool = BARCHART_FALLBACK_POOLS[barchartFallbackIdx++ % BARCHART_FALLBACK_POOLS.length]
+        } else {
+          pool = WORDCLOUD_FALLBACK_POOLS[wordcloudFallbackIdx++ % WORDCLOUD_FALLBACK_POOLS.length]
+        }
+      }
+      const shuffledPool = shuffled(pool)
       return allStudents.map((_, si) => ({
         class_id: classId,
         question_id: q.id,
-        content: pool[si % pool.length],
+        content: shuffledPool[si % shuffledPool.length],
       }))
     })
     if (voiceRows.length > 0) {
@@ -599,34 +661,6 @@ export async function seedDummyData(
         })
       )
       await admin.from('peer_messages').insert(msgRows)
-    }
-
-    // 8. Wire layout blocks with correct question/poll IDs
-    const voiceIds    = voiceQs.map(q => q.id)
-    const pollIds     = (polls ?? []).map(p => p.id)
-
-    const { data: classRow } = await admin
-      .from('classes')
-      .select('layout')
-      .eq('id', classId)
-      .single()
-
-    if (classRow?.layout) {
-      const blocks = classRow.layout as Array<{ type: string; config: Record<string, unknown> }>
-      let cvIdx = 0
-      let sbIdx = 0
-      const updated = blocks.map(b => {
-        if (b.type === 'class_voice' && voiceIds[cvIdx] != null)
-          return { ...b, config: { ...b.config, questionId: voiceIds[cvIdx++] } }
-        if (b.type === 'subjects_bar' && voiceIds[cvIdx + sbIdx] != null)
-          return { ...b, config: { ...b.config, questionId: voiceIds[cvIdx + sbIdx++] } }
-        if (b.type === 'polls_grid')
-          return { ...b, config: { ...b.config, pollIds } }
-        if (b.type === 'poll' && pollIds.length > 0)
-          return { ...b, config: { ...b.config, pollId: pollIds[0] } }
-        return b
-      })
-      await admin.from('classes').update({ layout: updated }).eq('id', classId)
     }
 
     revalidatePath(`/moderator/${classId}`)

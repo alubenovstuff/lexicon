@@ -99,11 +99,13 @@ export default async function LexiconCoverPage({ params }: { params: Promise<{ c
   if (linkedVoiceIds.size > 0) {
     const ids = [...linkedVoiceIds]
     const [qTexts, voiceAnswers] = await Promise.all([
-      admin.from('questions').select('id, text, voice_display').in('id', ids),
+      admin.from('questions').select('id, text, voice_display, order_index').in('id', ids),
       admin.from('class_voice_answers').select('question_id, content').eq('class_id', classId).in('question_id', ids),
     ])
 
     for (const q of qTexts.data ?? []) {
+      const display = (q.voice_display as 'wordcloud' | 'barchart' | null)
+        ?? ((q.order_index ?? 99) <= 1 ? 'barchart' : 'wordcloud')
       const raw = (voiceAnswers.data ?? []).filter(a => a.question_id === q.id).map(a => a.content)
       const total = raw.length
       const freq: Record<string, number> = {}
@@ -120,7 +122,7 @@ export default async function LexiconCoverPage({ params }: { params: Promise<{ c
           size: n >= maxF * 0.6 ? 'lg' : n >= maxF * 0.3 ? 'md' : 'sm',
           pct: total > 0 ? Math.round((n / total) * 100) : 0,
         }))
-      voiceData[q.id] = { text: q.text, items, display: (q.voice_display as 'wordcloud' | 'barchart') ?? 'wordcloud' }
+      voiceData[q.id] = { text: q.text, items, display }
     }
   }
 

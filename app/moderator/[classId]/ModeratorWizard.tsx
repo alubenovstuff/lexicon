@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import { useTransition } from 'react'
+import { revertClassToDraft } from './actions'
 
 interface WizardProps {
   classId: string
@@ -44,13 +46,18 @@ function stepDone(step: number, props: WizardProps): boolean {
 
 export default function ModeratorWizard(props: WizardProps) {
   const { classId } = props
+  const [isPending, startTransition] = useTransition()
 
   const currentStep = STEPS.find(s => !stepDone(s.id, props)) ?? null
   const allDone = currentStep === null
 
-  if (allDone) return null
-
   const completedCount = STEPS.filter(s => stepDone(s.id, props)).length
+
+  function handleRevertToDraft() {
+    startTransition(async () => {
+      await revertClassToDraft(classId)
+    })
+  }
 
   return (
     <div className="bg-white border border-indigo-100 rounded-2xl shadow-sm overflow-hidden mb-10">
@@ -61,7 +68,7 @@ export default function ModeratorWizard(props: WizardProps) {
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-indigo-500">Напредък</p>
             <p className="text-sm font-bold text-gray-800">
-              Стъпка {completedCount + 1} от {STEPS.length} — {currentStep?.label}
+              {allDone ? `Всички ${STEPS.length} стъпки завършени` : `Стъпка ${completedCount + 1} от ${STEPS.length} — ${currentStep?.label}`}
             </p>
           </div>
         </div>
@@ -120,15 +127,33 @@ export default function ModeratorWizard(props: WizardProps) {
         </div>
       </div>
 
-      {/* Current step CTA */}
-      {currentStep && (
+      {/* CTA */}
+      {allDone ? (
+        <div className="mx-6 mb-5 bg-emerald-50 border border-emerald-100 rounded-xl px-5 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-emerald-500 text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+            <div>
+              <p className="text-sm font-bold text-emerald-900">Лексиконът е публикуван!</p>
+              <p className="text-xs text-emerald-700 mt-0.5">Родителите вече имат достъп до него.</p>
+            </div>
+          </div>
+          <button
+            onClick={handleRevertToDraft}
+            disabled={isPending}
+            className="flex-shrink-0 flex items-center gap-2 border border-gray-200 bg-white text-gray-600 text-sm font-semibold px-4 py-2 rounded-xl hover:border-red-300 hover:text-red-600 transition-colors disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-base">undo</span>
+            {isPending ? 'Връщане...' : 'Върни в чернова'}
+          </button>
+        </div>
+      ) : (
         <div className="mx-6 mb-5 bg-indigo-50 border border-indigo-100 rounded-xl px-5 py-4 flex items-center justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-0.5">Следваща стъпка</p>
-            <p className="text-sm font-bold text-indigo-900">{currentStep.label}</p>
-            <p className="text-xs text-indigo-600 mt-0.5">{currentStep.detail}</p>
+            <p className="text-sm font-bold text-indigo-900">{currentStep?.label}</p>
+            <p className="text-xs text-indigo-600 mt-0.5">{currentStep?.detail}</p>
           </div>
-          {currentStep.href && (
+          {currentStep?.href && (
             <Link
               href={`/moderator/${classId}${currentStep.href}`}
               className="flex-shrink-0 flex items-center gap-2 bg-indigo-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors"

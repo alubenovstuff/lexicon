@@ -92,7 +92,23 @@ export default function LayoutEditor({ classId, className, initialBlocks, templa
     if (id === 'custom') { setActiveTemplate('custom'); setConfirmTemplate(null); return }
     const preset = templatePresets.find(t => t.id === id)
     if (!preset) return
-    setBlocks(preset.blocks.map(b => ({ ...b, id: nanoid(8) })))
+
+    // Auto-assign voice questions by display type
+    const barchartQs = assets.voiceQuestions.filter(q => q.voice_display === 'barchart')
+    const wordcloudQs = assets.voiceQuestions.filter(q => q.voice_display !== 'barchart')
+    let barchartIdx = 0
+    let wordcloudIdx = 0
+
+    setBlocks(preset.blocks.map(b => {
+      const newId = nanoid(8)
+      if (b.type === 'subjects_bar' && barchartQs[barchartIdx]) {
+        return { ...b, id: newId, config: { questionId: barchartQs[barchartIdx++].id } }
+      }
+      if (b.type === 'class_voice' && wordcloudQs[wordcloudIdx]) {
+        return { ...b, id: newId, config: { questionId: wordcloudQs[wordcloudIdx++].id } }
+      }
+      return { ...b, id: newId }
+    }))
     setActiveTemplate(id)
     setActiveBlockId(null)
     setConfirmTemplate(null)

@@ -138,7 +138,7 @@ function ConfigBody({ type, cfg, assets, classId, set }: {
       return (
         <ClassVoiceConfig
           cfg={cfg}
-          assets={assets}
+          assets={{ ...assets, voiceQuestions: assets.voiceQuestions.filter(q => q.voice_display !== 'barchart') }}
           classId={classId}
           set={set}
         />
@@ -148,7 +148,7 @@ function ConfigBody({ type, cfg, assets, classId, set }: {
       return (
         <ClassVoiceConfig
           cfg={cfg}
-          assets={assets}
+          assets={{ ...assets, voiceQuestions: assets.voiceQuestions.filter(q => q.voice_display === 'barchart') }}
           classId={classId}
           set={set}
         />
