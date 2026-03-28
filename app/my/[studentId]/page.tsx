@@ -29,7 +29,7 @@ export default async function MyChildPage({ params }: Props) {
 
   const { data: classData } = await admin
     .from('classes')
-    .select('id, status, teacher_name')
+    .select('id, status, teacher_name, deadline')
     .eq('id', student.class_id)
     .single()
 
@@ -122,6 +122,7 @@ export default async function MyChildPage({ params }: Props) {
       existingVotes={existingVotes}
       events={events}
       moderatorName={classData?.teacher_name ?? null}
+      deadline={classData?.deadline ?? null}
     />
   )
 }

@@ -36,6 +36,7 @@ interface Props {
   polls: Array<{ id: string; question: string; order_index: number }>
   existingVotes: Record<string, string>
   moderatorName: string | null
+  deadline: string | null
   events: Array<{
     id: string
     title: string
@@ -176,6 +177,7 @@ export default function StudentProfileParent({
   polls,
   existingVotes,
   moderatorName,
+  deadline,
   events,
 }: Props) {
   const answerMap = new Map(answers.map((a) => [a.question_id, a.status]))
@@ -294,6 +296,10 @@ export default function StudentProfileParent({
 
   const hasDrafts = answers.some(a => a.status === 'draft')
 
+  const deadlineFormatted = deadline
+    ? new Date(deadline).toLocaleDateString('bg-BG', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null
+
   async function handleLogout() {
     const supabase = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -301,6 +307,47 @@ export default function StudentProfileParent({
     )
     await supabase.auth.signOut()
     window.location.href = '/login'
+  }
+
+  // ── Thank you screen ────────────────────────────────────────────────────────
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-[#f4f3f2] flex flex-col items-center justify-center px-6 py-12 text-center" style={{ fontFamily: 'Manrope, sans-serif' }}>
+        <span className="material-symbols-outlined text-7xl text-emerald-400 block mb-6" style={{ fontVariationSettings: "'FILL' 1" }}>
+          celebration
+        </span>
+        <div className="max-w-sm space-y-4">
+          <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Noto Serif, serif' }}>
+            Въпросникът е изпратен за одобрение
+          </h1>
+          {deadlineFormatted && (
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Крайният срок за публикуване на лексикона е{' '}
+              <strong className="text-gray-700">{deadlineFormatted}</strong>.
+            </p>
+          )}
+          <p className="text-sm text-gray-600 leading-relaxed">
+            Благодарим ти,{' '}
+            <strong className="text-gray-900">{student.first_name}</strong>
+            , ти помогна за създаването на незабравим спомен!
+          </p>
+          <div className="pt-4 flex flex-col gap-2">
+            <Link
+              href={`/my/${student.id}/preview`}
+              className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors text-center shadow-sm"
+            >
+              Виж как изглежда страницата →
+            </Link>
+            <button
+              onClick={() => setSubmitted(false)}
+              className="w-full py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-500 hover:bg-white transition-colors"
+            >
+              Върни се към профила
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -576,46 +623,31 @@ export default function StudentProfileParent({
           </Section>
         )}
 
-        {/* ── Footer ─────────────────────────────────────────────────────── */}
-        {doneCount === totalSections && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-4 flex items-center gap-4">
-            <span
-              className="material-symbols-outlined text-green-500 text-3xl flex-shrink-0"
-              style={{ fontVariationSettings: "'FILL' 1" }}
+        {/* Submit button */}
+        {!submitted && (
+          <>
+            {doneCount < totalSections && (
+              <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3.5">
+                <span className="material-symbols-outlined text-amber-500 text-lg flex-shrink-0 mt-0.5">warning</span>
+                <p className="text-sm text-amber-800">
+                  Въпросникът не е завършен — попълнени са <strong>{doneCount} от {totalSections}</strong> секции. Можете да изпратите и сега, но непопълнените секции няма да се покажат в лексикона.
+                </p>
+              </div>
+            )}
+            <button
+              onClick={async () => {
+                setSubmitting(true)
+                await submitAllDrafts(student.id)
+                setSubmitting(false)
+                setSubmitted(true)
+              }}
+              disabled={submitting}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-sm transition-colors shadow-sm flex items-center justify-center gap-2"
             >
-              check_circle
-            </span>
-            <div>
-              <p className="font-bold text-green-800 text-sm">Всичко е попълнено!</p>
-              <p className="text-xs text-green-700 mt-0.5">
-                Благодарим ви, че помогнахте да направим лексикона на {student.first_name} незабравим.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Submit all drafts for moderation */}
-        {hasDrafts && !submitted && (
-          <button
-            onClick={async () => {
-              setSubmitting(true)
-              const res = await submitAllDrafts(student.id)
-              setSubmitting(false)
-              if (!res.error) setSubmitted(true)
-            }}
-            disabled={submitting}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-sm transition-colors shadow-sm flex items-center justify-center gap-2"
-          >
-            <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
-            {submitting ? 'Изпращане...' : 'Готово! Изпрати за преглед →'}
-          </button>
-        )}
-
-        {submitted && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-4 flex items-center gap-3">
-            <span className="material-symbols-outlined text-green-500 text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-            <p className="text-sm font-semibold text-green-800">Отговорите са изпратени за преглед!</p>
-          </div>
+              <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
+              {submitting ? 'Изпращане...' : `Изпрати към ${moderatorName ?? 'модератора'}`}
+            </button>
+          </>
         )}
 
         <p className="text-xs text-gray-400 text-center pb-4">
