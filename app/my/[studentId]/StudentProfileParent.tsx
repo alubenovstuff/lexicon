@@ -404,13 +404,13 @@ export default function StudentProfileParent({
 
         {/* All done banner */}
         {progressPercent === 100 && !submitted && !allApproved && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-4 flex items-start gap-3">
-            <span className="material-symbols-outlined text-green-500 text-xl mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-start gap-3">
+            <span className="material-symbols-outlined text-amber-500 text-xl mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
               celebration
             </span>
             <div>
-              <p className="text-sm font-bold text-green-800 mb-0.5">Профилът е готов!</p>
-              <p className="text-xs text-green-700 leading-relaxed">
+              <p className="text-sm font-bold text-amber-800 mb-0.5">Профилът е готов!</p>
+              <p className="text-xs text-amber-700 leading-relaxed">
                 Профилът на {student.first_name} е напълно попълнен. Изпрати към модератор за преглед и одобрение.
               </p>
             </div>
