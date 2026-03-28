@@ -77,7 +77,7 @@ export default async function ModeratorSidebar({ classId, namePart, schoolYear, 
         <div className="overflow-hidden">
           <p className="font-bold text-sm text-indigo-900 truncate">{namePart}</p>
           {schoolYear && <p className="text-xs text-slate-400 truncate">{schoolYear}</p>}
-          {user?.email && <p className="text-xs text-slate-400 truncate mt-0.5">{user.email}</p>}
+          <p className="text-xs text-slate-400 truncate mt-0.5">{user?.email ?? ''}</p>
         </div>
       </div>
 
