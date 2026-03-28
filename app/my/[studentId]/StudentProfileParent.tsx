@@ -195,20 +195,20 @@ export default function StudentProfileParent({
   function questionsSectionStatus(questions: Question[]): SectionStatus {
     if (questions.length === 0) return 'done'
     const approved = questions.filter(q => answerMap.get(q.id) === 'approved').length
-    const submitted = questions.filter(q => answerMap.get(q.id) === 'submitted').length
+    const filled = questions.filter(q => ['submitted', 'draft'].includes(answerMap.get(q.id) ?? '')).length
     if (approved === questions.length) return 'done'
-    if (approved + submitted === questions.length) return 'done'  // all submitted = counts as complete
-    if (submitted > 0 || approved > 0) return 'partial'
+    if (approved + filled === questions.length) return 'done'
+    if (filled > 0 || approved > 0) return 'partial'
     return 'todo'
   }
 
   function questionsSectionLabel(questions: Question[]): string {
     if (questions.length === 0) return 'Няма въпроси'
     const approved = questions.filter(q => answerMap.get(q.id) === 'approved').length
-    const submitted = questions.filter(q => answerMap.get(q.id) === 'submitted').length
+    const filled = questions.filter(q => ['submitted', 'draft'].includes(answerMap.get(q.id) ?? '')).length
     if (approved === questions.length) return 'Всички одобрени'
-    if (approved + submitted === questions.length) return 'Изпратено за одобрение'
-    if (submitted > 0) return `${approved + submitted} / ${questions.length} изпратени`
+    if (approved + filled === questions.length) return 'Изпратено за одобрение'
+    if (filled > 0) return `${approved + filled} / ${questions.length} изпратени`
     if (approved > 0) return `${approved} / ${questions.length} одобрени`
     return 'Не е започнато'
   }
