@@ -47,7 +47,8 @@ export default function StudentActions({
   }
 
   async function handleCopyLink() {
-    const url = `${window.location.origin}/join/${inviteToken}`
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin
+    const url = `${base}/join/${inviteToken}`
     await navigator.clipboard.writeText(url)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
