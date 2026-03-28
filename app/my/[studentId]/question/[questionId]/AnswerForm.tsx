@@ -53,6 +53,8 @@ export default function AnswerForm({
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSavedRef = useRef(answer?.text_content ?? '')
+  const textValueRef = useRef(textValue)
+  textValueRef.current = textValue
 
   // Auto-save text draft (3s debounce)
   useEffect(() => {
@@ -76,6 +78,18 @@ export default function AnswerForm({
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
   }, [textValue, isVideo, studentId, question.id])
+
+  // Flush draft immediately on unmount (e.g. user navigates back before debounce fires)
+  useEffect(() => {
+    return () => {
+      if (isVideo) return
+      const current = textValueRef.current
+      if (current !== lastSavedRef.current) {
+        saveDraft(studentId, question.id, current)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleTextSubmit() {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -250,6 +264,14 @@ export default function AnswerForm({
                 rows={5}
                 value={textValue}
                 onChange={(e) => setTextValue(e.target.value)}
+                onBlur={() => {
+                  if (textValue !== lastSavedRef.current) {
+                    if (debounceRef.current) clearTimeout(debounceRef.current)
+                    saveDraft(studentId, question.id, textValue).then(result => {
+                      if (!result.error) lastSavedRef.current = textValue
+                    })
+                  }
+                }}
                 maxLength={question.max_length ?? undefined}
                 placeholder="Напишете отговора тук..."
                 disabled={isLocked}
