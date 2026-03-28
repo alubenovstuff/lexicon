@@ -318,7 +318,7 @@ export default function AnswerForm({
 
         {/* Navigation */}
         <div className="flex justify-between mt-8 pt-5 border-t border-gray-200">
-          {prevQuestionId ? (
+          {!isVideo && prevQuestionId ? (
             <button
               onClick={() => navigateTo(`/my/${studentId}/question/${prevQuestionId}`)}
               className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
@@ -327,7 +327,7 @@ export default function AnswerForm({
               Предишен
             </button>
           ) : <span />}
-          {nextQuestionId ? (
+          {!isVideo && nextQuestionId ? (
             <button
               onClick={() => navigateTo(`/my/${studentId}/question/${nextQuestionId}`)}
               className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
@@ -336,6 +336,7 @@ export default function AnswerForm({
               <span className="material-symbols-outlined text-base">arrow_forward</span>
             </button>
           ) : (
+            // For video questions always go back to profile (no cross-section navigation)
             <button
               onClick={() => navigateTo(`/my/${studentId}`)}
               className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors shadow-sm"
