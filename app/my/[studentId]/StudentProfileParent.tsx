@@ -80,14 +80,14 @@ function QuestionRow({ question, status, studentId }: { question: Question; stat
     >
       <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
         status === 'approved' ? 'bg-green-500' :
-        status === 'submitted' ? 'bg-yellow-400' :
+        (status === 'submitted' || status === 'draft') ? 'bg-yellow-400' :
         'bg-gray-300'
       }`} />
       <span className="flex-1 text-sm text-gray-700 group-hover:text-indigo-800 leading-snug">{question.text}</span>
       {status === 'approved' && (
         <span className="text-xs text-green-600 font-medium flex-shrink-0">Одобрен</span>
       )}
-      {status === 'submitted' && (
+      {(status === 'submitted' || status === 'draft') && (
         <span className="text-xs text-yellow-600 font-medium flex-shrink-0">За преглед</span>
       )}
       {!status && (
